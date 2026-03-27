@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pedidos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 1.8em;
+            margin-bottom: 3px;
+        }
+
+        header p {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        .status-bar {
+            background: rgba(0, 0, 0, 0.08);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tabs-container {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button:hover {
+            background: #f0f0f0;
+            color: #667eea;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-bottom: 12px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.8em;
+        }
+
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: #f0f0f0;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-left: 3px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .card.editing {
+            background: #fffacd;
+            border-left-color: #ffc107;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-title {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 3px solid #28a745;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 3px solid #f5c6cb;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 420px;
+            width: 90%;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            background: #e0e0e0;
+            color: #333;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            font-size: 1em;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .status-paid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-favor {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px 15px;
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .select-search {
+            position: relative;
+        }
+
+        .select-search-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .select-search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .select-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+        }
+
+        .select-options.show {
+            display: block;
+        }
+
+        .option-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .option-item:hover {
+            background: #f0f0f0;
+        }
+
+        .option-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .option-detail {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.4em;
+            }
+
+            .tab-button {
+                min-width: 75px;
+                padding: 8px 10px;
+                font-size: 0.8em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            table {
+                font-size: 0.8em;
+            }
+
+            td, th {
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 Gestión de Pedidos</h1>
+            <p>Sistema offline</p>
+        </header>
+
+        <div class="status-bar">
+            <span>✅ Offline</span>
+            <span id="clientCount">Clientes: 0</span>
+            <button class="btn-secondary" style="padding: 5px 12px; font-size: 0.8em;" onclick="exportData()">💾 Exportar</button>
+            <button class="btn-secondary" style="padding: 5px 12px; font-size: 0.8em;" onclick="importData()">📥 Importar</button>
+            <button class="btn-danger" onclick="clearAllData()">🗑️ Limpiar</button>
+        </div>
+
+        <div class="tabs-container">
+            <button class="tab-button active" onclick="switchTab('clientes')">👥 Clientes</button>
+            <button class="tab-button" onclick="switchTab('pedidos')">📋 Pedidos</button>
+            <button class="tab-button" onclick="switchTab('pagos')">💳 Pagos</button>
+            <button class="tab-button" onclick="switchTab('reportes')">📊 Reportes</button>
+        </div>
+
+        <!-- CLIENTES -->
+        <div id="clientes" class="tab-content active">
+            <h2 class="section-title">Clientes</h2>
+            <div id="alertClientes" class="alert"></div>
+
+            <div class="card" id="clientFormCard">
+                <h3 id="clientFormTitle" style="font-size: 1em; margin-bottom: 12px;">Nuevo Cliente</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre *</label>
+                        <input type="text" id="clientName" placeholder="Nombre">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" id="clientPhone" placeholder="Teléfono">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="clientEmail" placeholder="Email">
+                    </div>
+                    <div class="form-group">
+                        <label>Documento</label>
+                        <input type="text" id="clientDoc" placeholder="RUC/DNI">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Domicilio</label>
+                    <input type="text" id="clientAddress" placeholder="Calle y número">
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" id="clientSubmitBtn" onclick="saveClient()">➕ Agregar</button>
+                    <button class="btn-secondary" onclick="clearClientForm()">Limpiar</button>
+                    <button class="btn-secondary" id="clientCancelBtn" onclick="cancelEditClient()" style="display: none;">❌ Cancelar</button>
+                </div>
+            </div>
+
+            <input type="text" class="search-input" id="clientsTableSearch" placeholder="🔍 Buscar cliente...">
+            <div id="clientsList"></div>
+        </div>
+
+        <!-- PEDIDOS -->
+        <div id="pedidos" class="tab-content">
+            <h2 class="section-title">Pedidos</h2>
+            <div id="alertPedidos" class="alert"></div>
+
+            <div class="card" id="orderFormCard">
+                <h3 id="orderFormTitle" style="font-size: 1em; margin-bottom: 12px;">Nuevo Pedido</h3>
+                <div class="form-group">
+                    <label>Cliente *</label>
+                    <div class="select-search">
+                        <input type="text" class="select-search-input" id="orderClientSearch" placeholder="🔍 Buscar cliente...">
+                        <div class="select-options" id="orderClientOptions"></div>
+                        <select id="orderClient" style="display:none;">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="orderDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Monto *</label>
+                        <input type="number" id="orderAmount" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Descripción *</label>
+                    <textarea id="orderDescription" placeholder="Descripción del pedido"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cantidad</label>
+                        <input type="number" id="orderQty" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="orderStatus">
+                            <option>pendiente</option>
+                            <option>confirmado</option>
+                            <option>entregado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Entrega</label>
+                    <input type="date" id="orderDelivery">
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" id="orderSubmitBtn" onclick="saveOrder()">➕ Registrar</button>
+                    <button class="btn-secondary" onclick="clearOrderForm()">Limpiar</button>
+                    <button class="btn-secondary" id="orderCancelBtn" onclick="cancelEditOrder()" style="display: none;">❌ Cancelar</button>
+                </div>
+            </div>
+
+            <div id="ordersList"></div>
+        </div>
+
+        <!-- PAGOS -->
+        <div id="pagos" class="tab-content">
+            <h2 class="section-title">Pagos</h2>
+            <div id="alertPagos" class="alert"></div>
+
+            <div class="card">
+                <h3 style="font-size: 1em; margin-bottom: 12px;">Registrar Pago</h3>
+                <div class="form-group">
+                    <label>Cliente *</label>
+                    <div class="select-search">
+                        <input type="text" class="select-search-input" id="paymentClientSearch" placeholder="🔍 Buscar cliente...">
+                        <div class="select-options" id="paymentClientOptions"></div>
+                        <select id="paymentClient" style="display:none;">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Monto *</label>
+                        <input type="number" id="paymentAmount" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="paymentDate">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Método</label>
+                        <select id="paymentMethod">
+                            <option>efectivo</option>
+                            <option>transferencia</option>
+                            <option>tarjeta</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Referencia</label>
+                        <input type="text" id="paymentRef" placeholder="Referencia">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="addPayment()">💰 Registrar</button>
+                    <button class="btn-secondary" onclick="clearPaymentForm()">Limpiar</button>
+                </div>
+            </div>
+
+            <h3 class="section-title" style="margin-top: 15px;">Cuentas Corrientes</h3>
+            <input type="text" class="search-input" id="accountsTableSearch" placeholder="🔍 Buscar cliente...">
+            <div id="accountsList"></div>
+
+            <h3 class="section-title" style="margin-top: 15px;">Historial de Pagos</h3>
+            <div id="paymentsList"></div>
+        </div>
+
+        <!-- REPORTES -->
+        <div id="reportes" class="tab-content">
+            <h2 class="section-title">Reportes</h2>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Clientes</div>
+                    <div class="stat-value" id="statClients">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Pedidos</div>
+                    <div class="stat-value" id="statOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Ventas</div>
+                    <div class="stat-value" id="statSales">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Pagos</div>
+                    <div class="stat-value" id="statPayments">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Pendiente</div>
+                    <div class="stat-value" id="statBalance">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Con Deuda</div>
+                    <div class="stat-value" id="statDebtors">0</div>
+                </div>
+            </div>
+
+            <h3 class="section-title">Resumen por Cliente</h3>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterReports('todos')">📊 Todos</button>
+                <button class="filter-btn" onclick="filterReports('deudores')">⚠️ Deudores</button>
+                <button class="filter-btn" onclick="filterReports('pagados')">✅ Pagados</button>
+                <button class="filter-btn" onclick="filterReports('favor')">💰 A Favor</button>
+            </div>
+            <input type="text" class="search-input" id="reportTableSearch" placeholder="🔍 Buscar cliente...">
+            <div id="summaryList"></div>
+
+            <div class="button-group" style="margin-top: 15px;">
+                <button class="btn-primary" onclick="printReport()">🖨️ Imprimir</button>
+                <button class="btn-primary" onclick="exportCSV()">📊 CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <input type="file" id="importFile" style="display:none" onchange="handleImport(event)">
+
+    <script>
+        let appData = { clients: [], orders: [], payments: [] };
+        let editingClientId = null, editingOrderId = null;
+        let reportFilter = 'todos';
+
+        function initApp() {
+            localStorage.removeItem('appData');
+            loadData();
+            setCurrentDate();
+            renderAll();
+            setupSearchListeners();
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('appData');
+            if (saved) try { appData = JSON.parse(saved); } catch (e) { appData = { clients: [], orders: [], payments: [] }; }
+        }
+
+        function saveData() {
+            localStorage.setItem('appData', JSON.stringify(appData));
+            updateClientCount();
+        }
+
+        function setCurrentDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('orderDate').value = today;
+            document.getElementById('paymentDate').value = today;
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            if (tabName === 'reportes') updateReports();
+        }
+
+        // BÚSQUEDA CLIENTES EN TABLA
+        function setupSearchListeners() {
+            document.getElementById('clientsTableSearch').addEventListener('keyup', () => filterClientsTable());
+            document.getElementById('accountsTableSearch').addEventListener('keyup', () => filterAccountsTable());
+            document.getElementById('reportTableSearch').addEventListener('keyup', () => filterReportTable());
+            document.getElementById('orderClientSearch').addEventListener('keyup', () => filterOrderClientSelect());
+            document.getElementById('paymentClientSearch').addEventListener('keyup', () => filterPaymentClientSelect());
+        }
+
+        function filterClientsTable() {
+            const query = document.getElementById('clientsTableSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#clientsList tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function filterAccountsTable() {
+            const query = document.getElementById('accountsTableSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#accountsList tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function filterReportTable() {
+            const query = document.getElementById('reportTableSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#summaryList tbody tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function filterReports(type) {
+            reportFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            updateReports();
+        }
+
+        // SELECCIONES CON BÚSQUEDA
+        function filterOrderClientSelect() {
+            const query = document.getElementById('orderClientSearch').value.toLowerCase();
+            const results = appData.clients.filter(c => 
+                c.name.toLowerCase().includes(query) || 
+                (c.phone && c.phone.toLowerCase().includes(query)) || 
+                (c.address && c.address.toLowerCase().includes(query))
+            );
+            
+            let html = '';
+            results.forEach(client => {
+                html += `<div class="option-item" onclick="selectOrderClient(${client.id})">
+                    <div class="option-name">${client.name}</div>
+                    <div class="option-detail">📞 ${client.phone || '-'} | 📍 ${client.address || '-'}</div>
+                </div>`;
+            });
+            
+            document.getElementById('orderClientOptions').innerHTML = html;
+            document.getElementById('orderClientOptions').classList.toggle('show', query.length > 0 && results.length > 0);
+        }
+
+        function filterPaymentClientSelect() {
+            const query = document.getElementById('paymentClientSearch').value.toLowerCase();
+            const results = appData.clients.filter(c => 
+                c.name.toLowerCase().includes(query) || 
+                (c.phone && c.phone.toLowerCase().includes(query)) || 
+                (c.address && c.address.toLowerCase().includes(query))
+            );
+            
+            let html = '';
+            results.forEach(client => {
+                html += `<div class="option-item" onclick="selectPaymentClient(${client.id})">
+                    <div class="option-name">${client.name}</div>
+                    <div class="option-detail">📞 ${client.phone || '-'} | 📍 ${client.address || '-'}</div>
+                </div>`;
+            });
+            
+            document.getElementById('paymentClientOptions').innerHTML = html;
+            document.getElementById('paymentClientOptions').classList.toggle('show', query.length > 0 && results.length > 0);
+        }
+
+        function selectOrderClient(id) {
+            const client = appData.clients.find(c => c.id === id);
+            document.getElementById('orderClient').value = id;
+            document.getElementById('orderClientSearch').value = client.name;
+            document.getElementById('orderClientOptions').classList.remove('show');
+        }
+
+        function selectPaymentClient(id) {
+            const client = appData.clients.find(c => c.id === id);
+            document.getElementById('paymentClient').value = id;
+            document.getElementById('paymentClientSearch').value = client.name;
+            document.getElementById('paymentClientOptions').classList.remove('show');
+        }
+
+        // CLIENTES
+        function saveClient() {
+            const name = document.getElementById('clientName').value.trim();
+            if (!name) { showAlert('alertClientes', 'Ingrese nombre', 'error'); return; }
+
+            if (editingClientId) {
+                const client = appData.clients.find(c => c.id === editingClientId);
+                if (client) {
+                    client.name = name;
+                    client.phone = document.getElementById('clientPhone').value.trim();
+                    client.email = document.getElementById('clientEmail').value.trim();
+                    client.doc = document.getElementById('clientDoc').value.trim();
+                    client.address = document.getElementById('clientAddress').value.trim();
+                }
+                saveData(); renderClients(); cancelEditClient(); updateClientSelects();
+                showAlert('alertClientes', '✅ Cliente actualizado', 'success');
+            } else {
+                appData.clients.push({
+                    id: Date.now(), name,
+                    phone: document.getElementById('clientPhone').value.trim(),
+                    email: document.getElementById('clientEmail').value.trim(),
+                    doc: document.getElementById('clientDoc').value.trim(),
+                    address: document.getElementById('clientAddress').value.trim(),
+                    createdAt: new Date().toISOString()
+                });
+                saveData(); clearClientForm(); renderClients(); updateClientSelects();
+                showAlert('alertClientes', '✅ Cliente agregado', 'success');
+            }
+        }
+
+        function editClient(id) {
+            const client = appData.clients.find(c => c.id === id);
+            if (!client) return;
+            editingClientId = id;
+            document.getElementById('clientName').value = client.name;
+            document.getElementById('clientPhone').value = client.phone || '';
+            document.getElementById('clientEmail').value = client.email || '';
+            document.getElementById('clientDoc').value = client.doc || '';
+            document.getElementById('clientAddress').value = client.address || '';
+            document.getElementById('clientFormCard').classList.add('editing');
+            document.getElementById('clientFormTitle').textContent = '✏️ Editando';
+            document.getElementById('clientSubmitBtn').textContent = '💾 Guardar';
+            document.getElementById('clientCancelBtn').style.display = 'block';
+            document.getElementById('clientFormCard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEditClient() {
+            editingClientId = null; clearClientForm();
+            document.getElementById('clientFormCard').classList.remove('editing');
+            document.getElementById('clientFormTitle').textContent = 'Nuevo Cliente';
+            document.getElementById('clientSubmitBtn').textContent = '➕ Agregar';
+            document.getElementById('clientCancelBtn').style.display = 'none';
+        }
+
+        function deleteClient(id) {
+            if (!confirm('¿Eliminar cliente?')) return;
+            appData.clients = appData.clients.filter(c => c.id !== id);
+            appData.orders = appData.orders.filter(o => o.clientId !== id);
+            appData.payments = appData.payments.filter(p => p.clientId !== id);
+            saveData(); renderClients(); renderOrders(); renderPayments(); updateClientSelects();
+            showAlert('alertClientes', 'Cliente eliminado', 'success');
+        }
+
+        function clearClientForm() {
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientPhone').value = '';
+            document.getElementById('clientEmail').value = '';
+            document.getElementById('clientDoc').value = '';
+            document.getElementById('clientAddress').value = '';
+        }
+
+        function renderClients() {
+            const container = document.getElementById('clientsList');
+            if (!appData.clients.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
+            let html = '<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Domicilio</th><th>Acciones</th></tr></thead><tbody>';
+            appData.clients.forEach(client => {
+                html += `<tr><td><strong>${client.name}</strong></td><td>${client.phone || '-'}</td><td>${client.address || '-'}</td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="viewClient(${client.id})">Ver</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editClient(${client.id})">Editar</button> <button class="btn-danger" onclick="deleteClient(${client.id})">X</button></td></tr>`;
+            });
+            container.innerHTML = html + '</tbody></table>';
+        }
+
+        function viewClient(id) {
+            const client = appData.clients.find(c => c.id === id);
+            const orders = appData.orders.filter(o => o.clientId === id);
+            const payments = appData.payments.filter(p => p.clientId === id);
+            const totalO = orders.reduce((s, o) => s + o.amount, 0);
+            const totalP = payments.reduce((s, p) => s + p.amount, 0);
+            const balance = totalO - totalP;
+            
+            let statusText = '';
+            let statusColor = '';
+            if (balance > 0) {
+                statusText = '⚠️ Deuda: $' + balance.toFixed(2);
+                statusColor = '#ff6b6b';
+            } else if (balance < 0) {
+                statusText = '💰 A Favor: $' + Math.abs(balance).toFixed(2);
+                statusColor = '#004085';
+            } else {
+                statusText = '✅ Al día';
+                statusColor = '#28a745';
+            }
+            
+            document.getElementById('modalBody').innerHTML = `
+                <div style="font-size:1.1em;font-weight:bold;margin-bottom:10px;">${client.name}</div>
+                <p><strong>Teléfono:</strong> ${client.phone || '-'}</p>
+                <p><strong>Email:</strong> ${client.email || '-'}</p>
+                <p><strong>Documento:</strong> ${client.doc || '-'}</p>
+                <p><strong>Domicilio:</strong> ${client.address || '-'}</p>
+                <div class="card" style="margin-top:10px;">
+                    <p><strong>Deudor:</strong> $${totalO.toFixed(2)}</p>
+                    <p><strong>Pagado:</strong> $${totalP.toFixed(2)}</p>
+                    <p><strong>Saldo:</strong> <span style="color:${statusColor};font-weight:bold;">${statusText}</span></p>
+                </div>
+            `;
+            document.getElementById('detailsModal').classList.add('active');
+        }
+
+        // PEDIDOS
+        function saveOrder() {
+            const clientId = document.getElementById('orderClient').value;
+            const description = document.getElementById('orderDescription').value.trim();
+            const amount = parseFloat(document.getElementById('orderAmount').value) || 0;
+            if (!clientId || !description || amount <= 0) { showAlert('alertPedidos', 'Complete campos requeridos', 'error'); return; }
+
+            if (editingOrderId) {
+                const order = appData.orders.find(o => o.id === editingOrderId);
+                if (order) {
+                    order.clientId = parseInt(clientId);
+                    order.date = document.getElementById('orderDate').value;
+                    order.description = description;
+                    order.qty = parseInt(document.getElementById('orderQty').value) || 0;
+                    order.amount = amount;
+                    order.status = document.getElementById('orderStatus').value;
+                    order.delivery = document.getElementById('orderDelivery').value;
+                }
+                saveData(); renderOrders(); cancelEditOrder();
+                showAlert('alertPedidos', '✅ Pedido actualizado', 'success');
+            } else {
+                appData.orders.push({
+                    id: Date.now(), clientId: parseInt(clientId), date: document.getElementById('orderDate').value,
+                    description, qty: parseInt(document.getElementById('orderQty').value) || 0, amount,
+                    status: document.getElementById('orderStatus').value, delivery: document.getElementById('orderDelivery').value,
+                    createdAt: new Date().toISOString()
+                });
+                saveData(); clearOrderForm(); renderOrders();
+                showAlert('alertPedidos', '✅ Pedido registrado', 'success');
+            }
+        }
+
+        function editOrder(id) {
+            const order = appData.orders.find(o => o.id === id);
+            if (!order) return;
+            editingOrderId = id;
+            const client = appData.clients.find(c => c.id === order.clientId);
+            document.getElementById('orderClient').value = order.clientId;
+            document.getElementById('orderClientSearch').value = client?.name || '';
+            document.getElementById('orderDate').value = order.date;
+            document.getElementById('orderDescription').value = order.description;
+            document.getElementById('orderQty').value = order.qty;
+            document.getElementById('orderAmount').value = order.amount;
+            document.getElementById('orderStatus').value = order.status;
+            document.getElementById('orderDelivery').value = order.delivery || '';
+            document.getElementById('orderFormCard').classList.add('editing');
+            document.getElementById('orderFormTitle').textContent = '✏️ Editando';
+            document.getElementById('orderSubmitBtn').textContent = '💾 Guardar';
+            document.getElementById('orderCancelBtn').style.display = 'block';
+            document.getElementById('orderFormCard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEditOrder() {
+            editingOrderId = null; clearOrderForm();
+            document.getElementById('orderFormCard').classList.remove('editing');
+            document.getElementById('orderFormTitle').textContent = 'Nuevo Pedido';
+            document.getElementById('orderSubmitBtn').textContent = '➕ Registrar';
+            document.getElementById('orderCancelBtn').style.display = 'none';
+        }
+
+        function deleteOrder(id) {
+            if (!confirm('¿Eliminar?')) return;
+            appData.orders = appData.orders.filter(o => o.id !== id);
+            saveData(); renderOrders();
+            showAlert('alertPedidos', 'Pedido eliminado', 'success');
+        }
+
+        function clearOrderForm() {
+            document.getElementById('orderClient').value = '';
+            document.getElementById('orderClientSearch').value = '';
+            document.getElementById('orderDescription').value = '';
+            document.getElementById('orderQty').value = '';
+            document.getElementById('orderAmount').value = '';
+            document.getElementById('orderStatus').value = 'pendiente';
+            document.getElementById('orderDelivery').value = '';
+            setCurrentDate();
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('ordersList');
+            if (!appData.orders.length) { container.innerHTML = '<div class="empty-state">Sin pedidos</div>'; return; }
+            let html = '<table><thead><tr><th>Cliente</th><th>Fecha</th><th>Monto</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+            appData.orders.forEach(order => {
+                const client = appData.clients.find(c => c.id === order.clientId);
+                const colors = {'pendiente':'#fff3cd','confirmado':'#d1ecf1','entregado':'#d4edda'};
+                html += `<tr><td>${client?.name || '-'}</td><td>${order.date}</td><td>$${order.amount.toFixed(2)}</td><td><span class="status-badge" style="background:${colors[order.status]};color:#333;">${order.status}</span></td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editOrder(${order.id})">Editar</button> <button class="btn-danger" onclick="deleteOrder(${order.id})">X</button></td></tr>`;
+            });
+            container.innerHTML = html + '</tbody></table>';
+        }
+
+        // PAGOS
+        function addPayment() {
+            const clientId = document.getElementById('paymentClient').value;
+            const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+            if (!clientId || amount <= 0) { showAlert('alertPagos', 'Complete campos', 'error'); return; }
+            appData.payments.push({
+                id: Date.now(), clientId: parseInt(clientId), amount, date: document.getElementById('paymentDate').value,
+                method: document.getElementById('paymentMethod').value, ref: document.getElementById('paymentRef').value.trim(),
+                createdAt: new Date().toISOString()
+            });
+            saveData(); clearPaymentForm(); renderPayments(); renderAccountsStatus();
+            showAlert('alertPagos', '✅ Pago registrado', 'success');
+        }
+
+        function deletePayment(id) {
+            if (!confirm('¿Eliminar?')) return;
+            appData.payments = appData.payments.filter(p => p.id !== id);
+            saveData(); renderPayments(); renderAccountsStatus();
+            showAlert('alertPagos', 'Pago eliminado', 'success');
+        }
+
+        function clearPaymentForm() {
+            document.getElementById('paymentClient').value = '';
+            document.getElementById('paymentClientSearch').value = '';
+            document.getElementById('paymentAmount').value = '';
+            document.getElementById('paymentMethod').value = 'efectivo';
+            document.getElementById('paymentRef').value = '';
+            setCurrentDate();
+        }
+
+        function renderPayments() {
+            const container = document.getElementById('paymentsList');
+            if (!appData.payments.length) { container.innerHTML = '<div class="empty-state">Sin pagos</div>'; return; }
+            let html = '<table><thead><tr><th>Cliente</th><th>Monto</th><th>Fecha</th><th>Método</th><th>Acciones</th></tr></thead><tbody>';
+            appData.payments.forEach(payment => {
+                const client = appData.clients.find(c => c.id === payment.clientId);
+                html += `<tr><td>${client?.name || '-'}</td><td>$${payment.amount.toFixed(2)}</td><td>${payment.date}</td><td>${payment.method}</td><td><button class="btn-danger" onclick="deletePayment(${payment.id})">X</button></td></tr>`;
+            });
+            container.innerHTML = html + '</tbody></table>';
+        }
+
+        function renderAccountsStatus() {
+            const container = document.getElementById('accountsList');
+            if (!appData.clients.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
+            let html = '<table><thead><tr><th>Cliente</th><th>Deudor</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>';
+            appData.clients.forEach(client => {
+                const orders = appData.orders.filter(o => o.clientId === client.id);
+                const payments = appData.payments.filter(p => p.clientId === client.id);
+                const totalO = orders.reduce((s, o) => s + o.amount, 0);
+                const totalP = payments.reduce((s, p) => s + p.amount, 0);
+                const balance = totalO - totalP;
+                
+                let statusBadge = '';
+                let statusColor = '';
+                if (balance > 0) {
+                    statusBadge = '⚠️ Deuda';
+                    statusColor = '#fff3cd';
+                } else if (balance < 0) {
+                    statusBadge = '💰 A Favor';
+                    statusColor = '#cce5ff';
+                } else {
+                    statusBadge = '✅ Al día';
+                    statusColor = '#d4edda';
+                }
+                
+                html += `<tr><td>${client.name}</td><td>$${totalO.toFixed(2)}</td><td>$${totalP.toFixed(2)}</td><td style="color:${balance > 0 ? '#ff6b6b' : balance < 0 ? '#004085' : '#28a745'};font-weight:bold;">$${Math.abs(balance).toFixed(2)}</td><td><span class="status-badge" style="background:${statusColor};color:#333;">${statusBadge}</span></td></tr>`;
+            });
+            container.innerHTML = html + '</tbody></table>';
+        }
+
+        // REPORTES
+        function updateReports() {
+            const totalClients = appData.clients.length;
+            const totalOrders = appData.orders.length;
+            const totalSales = appData.orders.reduce((s, o) => s + o.amount, 0);
+            const totalPayments = appData.payments.reduce((s, p) => s + p.amount, 0);
+            const balance = totalSales - totalPayments;
+            let debtors = 0, favor = 0;
+            appData.clients.forEach(client => {
+                const orders = appData.orders.filter(o => o.clientId === client.id);
+                const payments = appData.payments.filter(p => p.clientId === client.id);
+                const totalO = orders.reduce((s, o) => s + o.amount, 0);
+                const totalP = payments.reduce((s, p) => s + p.amount, 0);
+                if (totalO - totalP > 0) debtors++;
+                if (totalO - totalP < 0) favor++;
+            });
+            document.getElementById('statClients').textContent = totalClients;
+            document.getElementById('statOrders').textContent = totalOrders;
+            document.getElementById('statSales').textContent = '$' + totalSales.toFixed(0);
+            document.getElementById('statPayments').textContent = '$' + totalPayments.toFixed(0);
+            document.getElementById('statBalance').textContent = '$' + balance.toFixed(0);
+            document.getElementById('statDebtors').textContent = debtors + '+' + favor;
+
+            let summaryHtml = '<table><thead><tr><th>Cliente</th><th>Deudor</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>';
+            appData.clients.forEach(client => {
+                const orders = appData.orders.filter(o => o.clientId === client.id);
+                const payments = appData.payments.filter(p => p.clientId === client.id);
+                const totalO = orders.reduce((s, o) => s + o.amount, 0);
+                const totalP = payments.reduce((s, p) => s + p.amount, 0);
+                const balance = totalO - totalP;
+
+                let showRow = false;
+                if (reportFilter === 'todos') showRow = true;
+                else if (reportFilter === 'deudores' && balance > 0) showRow = true;
+                else if (reportFilter === 'pagados' && balance === 0) showRow = true;
+                else if (reportFilter === 'favor' && balance < 0) showRow = true;
+
+                if (showRow) {
+                    let statusBadge = '';
+                    let statusColor = '';
+                    if (balance > 0) {
+                        statusBadge = '⚠️ Deuda';
+                        statusColor = '#fff3cd';
+                    } else if (balance < 0) {
+                        statusBadge = '💰 A Favor';
+                        statusColor = '#cce5ff';
+                    } else {
+                        statusBadge = '✅ Al día';
+                        statusColor = '#d4edda';
+                    }
+                    
+                    summaryHtml += `<tr><td>${client.name}</td><td>$${totalO.toFixed(2)}</td><td>$${totalP.toFixed(2)}</td><td style="color:${balance > 0 ? '#ff6b6b' : balance < 0 ? '#004085' : '#28a745'};font-weight:bold;">$${Math.abs(balance).toFixed(2)}</td><td><span class="status-badge" style="background:${statusColor};color:#333;">${statusBadge}</span></td></tr>`;
+                }
+            });
+            document.getElementById('summaryList').innerHTML = summaryHtml + '</tbody></table>';
+        }
+
+        function printReport() {
+            const w = window.open();
+            const totalSales = appData.orders.reduce((s, o) => s + o.amount, 0);
+            const totalPayments = appData.payments.reduce((s, p) => s + p.amount, 0);
+            w.document.write(`<h1>Reporte ${new Date().toLocaleDateString('es-ES')}</h1><p>Clientes: ${appData.clients.length} | Ventas: $${totalSales.toFixed(2)} | Pagos: $${totalPayments.toFixed(2)} | Pendiente: $${(totalSales-totalPayments).toFixed(2)}</p>`);
+            w.document.close();
+            w.print();
+        }
+
+        function exportCSV() {
+            let csv = 'CLIENTES\nNombre,Teléfono,Email,Domicilio\n';
+            appData.clients.forEach(c => csv += `${c.name},${c.phone},${c.email},${c.address}\n`);
+            csv += '\nPEDIDOS\nCliente,Fecha,Monto\n';
+            appData.orders.forEach(o => { const c = appData.clients.find(x=>x.id===o.clientId); csv += `${c?.name},${o.date},$${o.amount}\n`; });
+            csv += '\nPAGOS\nCliente,Monto,Fecha\n';
+            appData.payments.forEach(p => { const c = appData.clients.find(x=>x.id===p.clientId); csv += `${c?.name},$${p.amount},${p.date}\n`; });
+            const blob = new Blob([csv], {type:'text/csv'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'reporte.csv';
+            link.click();
+        }
+
+        // UTILIDADES
+        function showAlert(id, msg, type) {
+            const alert = document.getElementById(id);
+            alert.textContent = msg;
+            alert.className = 'alert show ' + type;
+            setTimeout(() => { alert.className = 'alert'; }, 3500);
+        }
+
+        function updateClientSelects() {
+            const html = '<option value="">-- Seleccionar --</option>' + appData.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            document.getElementById('orderClient').innerHTML = html;
+            document.getElementById('paymentClient').innerHTML = html;
+        }
+
+        function updateClientCount() {
+            document.getElementById('clientCount').textContent = `Clientes: ${appData.clients.length}`;
+        }
+
+        function renderAll() {
+            renderClients(); renderOrders(); renderPayments(); renderAccountsStatus(); updateClientSelects();
+        }
+
+        function clearAllData() {
+            if (!confirm('¿Eliminar TODOS los datos?')) return;
+            appData = { clients: [], orders: [], payments: [] };
+            localStorage.removeItem('appData');
+            renderAll();
+            alert('✅ Base de datos limpiada');
+        }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify(appData, null, 2)], {type:'application/json'});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'backup.json';
+            link.click();
+        }
+
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.clients && imported.orders && imported.payments) {
+                        appData = imported;
+                        saveData();
+                        renderAll();
+                        alert('✅ Datos importados');
+                    } else {
+                        alert('❌ Formato inválido');
+                    }
+                } catch {
+                    alert('❌ Error en archivo');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function closeModal() {
+            document.getElementById('detailsModal').classList.remove('active');
+        }
+
+        window.onclick = e => {
+            if (e.target === document.getElementById('detailsModal')) document.getElementById('detailsModal').classList.remove('active');
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
