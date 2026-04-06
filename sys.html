@@ -182,6 +182,23 @@
             min-height: 60px;
         }
 
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
         .button-group {
             display: flex;
             gap: 8px;
@@ -231,6 +248,28 @@
 
         .btn-danger:hover {
             background: #ff5252;
+        }
+
+        .btn-settings {
+            background: #6c757d;
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.85em;
+        }
+
+        .btn-settings:hover {
+            background: #5a6268;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.8em;
+        }
+
+        .btn-info:hover {
+            background: #138496;
         }
 
         table {
@@ -332,6 +371,7 @@
             background-color: rgba(0, 0, 0, 0.5);
             align-items: center;
             justify-content: center;
+            overflow-y: auto;
         }
 
         .modal.active {
@@ -342,11 +382,12 @@
             background: white;
             padding: 20px;
             border-radius: 8px;
-            max-width: 420px;
+            max-width: 900px;
             width: 90%;
             position: relative;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
+            margin: auto;
         }
 
         .close-modal {
@@ -450,6 +491,177 @@
             color: #666;
         }
 
+        .ticket-preview {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            width: 80mm;
+            margin: 15px auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .ticket-preview h3 {
+            margin: 5px 0;
+            font-size: 13px;
+        }
+
+        .ticket-preview p {
+            margin: 3px 0;
+        }
+
+        .ticket-preview hr {
+            border: none;
+            border-top: 1px solid #333;
+            margin: 8px 0;
+        }
+
+        .ticket-section {
+            margin: 10px 0;
+        }
+
+        .ticket-label {
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .client-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .client-header h2 {
+            font-size: 1.3em;
+            margin-bottom: 8px;
+        }
+
+        .client-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 12px;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .client-info-item {
+            background: rgba(255,255,255,0.15);
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .client-info-label {
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-size: 0.8em;
+        }
+
+        .client-balance {
+            margin-top: 8px;
+            font-size: 1em;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.85em;
+        }
+
+        .history-table thead {
+            background: #f0f0f0;
+        }
+
+        .history-table th {
+            padding: 6px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 0.8em;
+        }
+
+        .history-table td {
+            padding: 6px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .history-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .history-row.order {
+            background: #fffbf0;
+        }
+
+        .history-row.payment {
+            background: #f0fbf7;
+        }
+
+        .history-date {
+            font-weight: 600;
+            color: #333;
+            min-width: 90px;
+        }
+
+        .history-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .history-type.payment {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .history-type.order {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .history-amount {
+            font-weight: bold;
+            text-align: right;
+            min-width: 80px;
+        }
+
+        .history-amount.order {
+            color: #ffc107;
+        }
+
+        .history-amount.payment {
+            color: #28a745;
+        }
+
+        @media print {
+            @page {
+                size: 80mm auto;
+                margin: 0;
+            }
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                max-width: 80mm;
+            }
+            .tab-content, .tabs-container, header, .status-bar {
+                display: none !important;
+            }
+            .ticket-print {
+                display: block !important;
+                max-width: 80mm;
+            }
+        }
+
         @media (max-width: 600px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -476,6 +688,18 @@
             td, th {
                 padding: 5px;
             }
+
+            .client-info {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .history-table {
+                font-size: 0.75em;
+            }
+
+            .history-table th, .history-table td {
+                padding: 4px;
+            }
         }
     </style>
 </head>
@@ -491,6 +715,7 @@
             <span id="clientCount">Clientes: 0</span>
             <button class="btn-secondary" style="padding: 5px 12px; font-size: 0.8em;" onclick="exportData()">💾 Exportar</button>
             <button class="btn-secondary" style="padding: 5px 12px; font-size: 0.8em;" onclick="importData()">📥 Importar</button>
+            <button class="btn-settings" onclick="openSettings()">⚙️ Configuración</button>
             <button class="btn-danger" onclick="clearAllData()">🗑️ Limpiar</button>
         </div>
 
@@ -705,7 +930,80 @@
         </div>
     </div>
 
-    <!-- MODAL -->
+    <!-- MODAL HISTORIAL -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeHistory()">&times;</button>
+            <div id="historyBody"></div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIGURACIÓN -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeSettings()">&times;</button>
+            <h2 style="margin-bottom: 15px;">⚙️ Configuración de Tickets</h2>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 12px; display: block;">Selecciona los elementos a mostrar en el ticket:</label>
+                
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showLogo" checked>
+                        <label for="showLogo" style="margin-bottom: 0;">Mostrar Logo/Título</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showClientName" checked>
+                        <label for="showClientName" style="margin-bottom: 0;">Nombre del Cliente</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showClientPhone" checked>
+                        <label for="showClientPhone" style="margin-bottom: 0;">Teléfono del Cliente</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showClientAddress" checked>
+                        <label for="showClientAddress" style="margin-bottom: 0;">Domicilio del Cliente</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showDate" checked>
+                        <label for="showDate" style="margin-bottom: 0;">Fecha</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showDescription" checked>
+                        <label for="showDescription" style="margin-bottom: 0;">Descripción</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showAmount" checked>
+                        <label for="showAmount" style="margin-bottom: 0;">Monto Total</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showFooter" checked>
+                        <label for="showFooter" style="margin-bottom: 0;">Pie de Página</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label for="businessName" style="display: block; margin-bottom: 8px;"><strong>Nombre del Negocio:</strong></label>
+                <input type="text" id="businessName" placeholder="Mi Negocio" style="margin-bottom: 12px;">
+                
+                <label for="footerText" style="display: block; margin-bottom: 8px;"><strong>Texto del Pie:</strong></label>
+                <textarea id="footerText" placeholder="Gracias por su compra" style="margin-bottom: 12px;"></textarea>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px;">Vista Previa del Ticket:</h3>
+                <div id="previewTicket" class="ticket-preview"></div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="saveSettings()">💾 Guardar Configuración</button>
+                <button class="btn-secondary" onclick="closeSettings()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALLES -->
     <div id="detailsModal" class="modal">
         <div class="modal-content">
             <button class="close-modal" onclick="closeModal()">&times;</button>
@@ -717,12 +1015,24 @@
 
     <script>
         let appData = { clients: [], orders: [], payments: [] };
+        let ticketConfig = {
+            showLogo: true,
+            showClientName: true,
+            showClientPhone: true,
+            showClientAddress: true,
+            showDate: true,
+            showDescription: true,
+            showAmount: true,
+            showFooter: true,
+            businessName: 'Mi Negocio',
+            footerText: 'Gracias por su compra'
+        };
         let editingClientId = null, editingOrderId = null;
         let reportFilter = 'todos';
 
         function initApp() {
-            localStorage.removeItem('appData');
             loadData();
+            loadTicketConfig();
             setCurrentDate();
             renderAll();
             setupSearchListeners();
@@ -730,12 +1040,100 @@
 
         function loadData() {
             const saved = localStorage.getItem('appData');
-            if (saved) try { appData = JSON.parse(saved); } catch (e) { appData = { clients: [], orders: [], payments: [] }; }
+            if (saved) {
+                try {
+                    appData = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Error cargando datos:', e);
+                    appData = { clients: [], orders: [], payments: [] };
+                }
+            }
+        }
+
+        function loadTicketConfig() {
+            const saved = localStorage.getItem('ticketConfig');
+            if (saved) {
+                try {
+                    ticketConfig = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Error cargando configuración:', e);
+                }
+            }
         }
 
         function saveData() {
             localStorage.setItem('appData', JSON.stringify(appData));
             updateClientCount();
+        }
+
+        function saveSettings() {
+            ticketConfig.showLogo = document.getElementById('showLogo').checked;
+            ticketConfig.showClientName = document.getElementById('showClientName').checked;
+            ticketConfig.showClientPhone = document.getElementById('showClientPhone').checked;
+            ticketConfig.showClientAddress = document.getElementById('showClientAddress').checked;
+            ticketConfig.showDate = document.getElementById('showDate').checked;
+            ticketConfig.showDescription = document.getElementById('showDescription').checked;
+            ticketConfig.showAmount = document.getElementById('showAmount').checked;
+            ticketConfig.showFooter = document.getElementById('showFooter').checked;
+            ticketConfig.businessName = document.getElementById('businessName').value;
+            ticketConfig.footerText = document.getElementById('footerText').value;
+
+            localStorage.setItem('ticketConfig', JSON.stringify(ticketConfig));
+            updatePreview();
+            alert('✅ Configuración guardada');
+        }
+
+        function openSettings() {
+            document.getElementById('showLogo').checked = ticketConfig.showLogo;
+            document.getElementById('showClientName').checked = ticketConfig.showClientName;
+            document.getElementById('showClientPhone').checked = ticketConfig.showClientPhone;
+            document.getElementById('showClientAddress').checked = ticketConfig.showClientAddress;
+            document.getElementById('showDate').checked = ticketConfig.showDate;
+            document.getElementById('showDescription').checked = ticketConfig.showDescription;
+            document.getElementById('showAmount').checked = ticketConfig.showAmount;
+            document.getElementById('showFooter').checked = ticketConfig.showFooter;
+            document.getElementById('businessName').value = ticketConfig.businessName;
+            document.getElementById('footerText').value = ticketConfig.footerText;
+
+            updatePreview();
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function updatePreview() {
+            const preview = document.getElementById('previewTicket');
+            let html = '';
+
+            if (document.getElementById('showLogo').checked) {
+                html += `<h3>${document.getElementById('businessName').value}</h3><hr>`;
+            }
+
+            if (document.getElementById('showDate').checked) {
+                html += `<p>${new Date().toLocaleDateString('es-ES')}</p>`;
+            }
+
+            html += `<div class="ticket-section">
+                ${document.getElementById('showClientName').checked ? `<p><span class="ticket-label">Cliente:</span><br>${document.getElementById('businessName').value}</p>` : ''}
+                ${document.getElementById('showClientPhone').checked ? `<p><span class="ticket-label">Tel:</span><br>0000000000</p>` : ''}
+                ${document.getElementById('showClientAddress').checked ? `<p><span class="ticket-label">Dir:</span><br>Calle Principal</p>` : ''}
+            </div><hr>`;
+
+            if (document.getElementById('showDescription').checked) {
+                html += `<p><span class="ticket-label">Descripción:</span><br>Producto ejemplo</p><hr>`;
+            }
+
+            if (document.getElementById('showAmount').checked) {
+                html += `<p style="font-size: 14px; font-weight: bold;">TOTAL: $100.00</p><hr>`;
+            }
+
+            if (document.getElementById('showFooter').checked) {
+                html += `<p>${document.getElementById('footerText').value}</p>`;
+            }
+
+            preview.innerHTML = html;
         }
 
         function setCurrentDate() {
@@ -752,13 +1150,18 @@
             if (tabName === 'reportes') updateReports();
         }
 
-        // BÚSQUEDA CLIENTES EN TABLA
         function setupSearchListeners() {
             document.getElementById('clientsTableSearch').addEventListener('keyup', () => filterClientsTable());
             document.getElementById('accountsTableSearch').addEventListener('keyup', () => filterAccountsTable());
             document.getElementById('reportTableSearch').addEventListener('keyup', () => filterReportTable());
             document.getElementById('orderClientSearch').addEventListener('keyup', () => filterOrderClientSelect());
             document.getElementById('paymentClientSearch').addEventListener('keyup', () => filterPaymentClientSelect());
+
+            document.querySelectorAll('.checkbox-item input').forEach(checkbox => {
+                checkbox.addEventListener('change', updatePreview);
+            });
+            document.getElementById('businessName').addEventListener('input', updatePreview);
+            document.getElementById('footerText').addEventListener('input', updatePreview);
         }
 
         function filterClientsTable() {
@@ -795,7 +1198,6 @@
             updateReports();
         }
 
-        // SELECCIONES CON BÚSQUEDA
         function filterOrderClientSelect() {
             const query = document.getElementById('orderClientSearch').value.toLowerCase();
             const results = appData.clients.filter(c => 
@@ -921,12 +1323,104 @@
             document.getElementById('clientAddress').value = '';
         }
 
+        function viewClientHistory(id) {
+            const client = appData.clients.find(c => c.id === id);
+            const orders = appData.orders.filter(o => o.clientId === id);
+            const payments = appData.payments.filter(p => p.clientId === id);
+            
+            const totalO = orders.reduce((s, o) => s + o.amount, 0);
+            const totalP = payments.reduce((s, p) => s + p.amount, 0);
+            const balance = totalO - totalP;
+
+            let statusText = '';
+            let statusColor = '';
+            if (balance > 0) {
+                statusText = '⚠️ Deuda: $' + balance.toFixed(2);
+                statusColor = '#ff6b6b';
+            } else if (balance < 0) {
+                statusText = '💰 A Favor: $' + Math.abs(balance).toFixed(2);
+                statusColor = '#004085';
+            } else {
+                statusText = '✅ Al día';
+                statusColor = '#28a745';
+            }
+
+            // Combinar y ordenar por fecha
+            let allItems = [];
+            orders.forEach(o => allItems.push({...o, type: 'order', date: new Date(o.date)}));
+            payments.forEach(p => allItems.push({...p, type: 'payment', date: new Date(p.date)}));
+            allItems.sort((a, b) => b.date - a.date);
+
+            let html = `<div class="client-header">
+                <h2>${client.name}</h2>
+                <div class="client-info">
+                    <div class="client-info-item">
+                        <div class="client-info-label">📱 Teléfono</div>
+                        <div>${client.phone || 'N/A'}</div>
+                    </div>
+                    <div class="client-info-item">
+                        <div class="client-info-label">📍 Dirección</div>
+                        <div>${client.address || 'N/A'}</div>
+                    </div>
+                    <div class="client-info-item">
+                        <div class="client-info-label">💰 Total Deudor</div>
+                        <div>$${totalO.toFixed(2)}</div>
+                    </div>
+                    <div class="client-info-item">
+                        <div class="client-info-label">✅ Total Pagado</div>
+                        <div>$${totalP.toFixed(2)}</div>
+                    </div>
+                </div>
+                <div class="client-balance">
+                    <strong>Saldo:</strong> <span style="color:${statusColor};">${statusText}</span>
+                </div>
+            </div>`;
+
+            if (allItems.length === 0) {
+                html += '<div class="empty-state">Sin historial</div>';
+            } else {
+                html += `<table class="history-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 90px;">Fecha</th>
+                            <th style="width: 60px;">Tipo</th>
+                            <th flex-grow: 1;">Descripción</th>
+                            <th style="width: 80px; text-align: right;">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                
+                allItems.forEach(item => {
+                    if (item.type === 'order') {
+                        html += `<tr class="history-row order">
+                            <td class="history-date">${item.date.toLocaleDateString('es-ES')}</td>
+                            <td><span class="history-type order">📋 PEDIDO</span></td>
+                            <td>${item.description}</td>
+                            <td class="history-amount order">+ $${item.amount.toFixed(2)}</td>
+                        </tr>`;
+                    } else {
+                        html += `<tr class="history-row payment">
+                            <td class="history-date">${item.date.toLocaleDateString('es-ES')}</td>
+                            <td><span class="history-type payment">💰 PAGO</span></td>
+                            <td>${item.method}</td>
+                            <td class="history-amount payment">- $${item.amount.toFixed(2)}</td>
+                        </tr>`;
+                    }
+                });
+                
+                html += '</tbody></table>';
+            }
+
+            document.getElementById('historyBody').innerHTML = html;
+            document.getElementById('historyModal').classList.add('active');
+        }
+
         function renderClients() {
             const container = document.getElementById('clientsList');
             if (!appData.clients.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
             let html = '<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Domicilio</th><th>Acciones</th></tr></thead><tbody>';
             appData.clients.forEach(client => {
-                html += `<tr><td><strong>${client.name}</strong></td><td>${client.phone || '-'}</td><td>${client.address || '-'}</td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="viewClient(${client.id})">Ver</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editClient(${client.id})">Editar</button> <button class="btn-danger" onclick="deleteClient(${client.id})">X</button></td></tr>`;
+                html += `<tr><td><strong>${client.name}</strong></td><td>${client.phone || '-'}</td><td>${client.address || '-'}</td><td style="font-size:0.85em;"><button class="btn-info" style="padding:4px 8px;font-size:0.8em;" onclick="viewClientHistory(${client.id})">📜 Historial</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editClient(${client.id})">Editar</button> <button class="btn-danger" onclick="deleteClient(${client.id})">X</button></td></tr>`;
             });
             container.innerHTML = html + '</tbody></table>';
         }
@@ -1045,6 +1539,143 @@
             setCurrentDate();
         }
 
+        function printOrderTicket(orderId) {
+            const order = appData.orders.find(o => o.id === orderId);
+            const client = appData.clients.find(c => c.id === order.clientId);
+
+            let ticketHTML = '<div style="width:80mm;margin:0 auto;padding:10px;font-family:\'Courier New\',monospace;font-size:11px;text-align:center;">';
+
+            if (ticketConfig.showLogo) {
+                ticketHTML += `<h3 style="margin:5px 0;">${ticketConfig.businessName}</h3><hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+            }
+
+            ticketHTML += `<p style="margin:3px 0;"><strong>PEDIDO</strong></p>`;
+
+            if (ticketConfig.showDate) {
+                ticketHTML += `<p style="margin:3px 0;font-size:10px;">${new Date(order.date).toLocaleDateString('es-ES')}</p>`;
+            }
+
+            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+            if (ticketConfig.showClientName) {
+                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Cliente:</span><br>${client.name}</p>`;
+            }
+
+            if (ticketConfig.showClientPhone) {
+                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Tel:</span><br>${client.phone || 'N/A'}</p>`;
+            }
+
+            if (ticketConfig.showClientAddress) {
+                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Dir:</span><br>${client.address || 'N/A'}</p>`;
+            }
+
+            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+            if (ticketConfig.showDescription) {
+                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Descripción:</span><br>${order.description}</p>`;
+                if (order.qty) {
+                    ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Cantidad:</span> ${order.qty}</p>`;
+                }
+            }
+
+            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+            if (ticketConfig.showAmount) {
+                ticketHTML += `<p style="margin:3px 0;font-size:13px;font-weight:bold;">TOTAL: $${order.amount.toFixed(2)}</p>`;
+            }
+
+            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+            if (ticketConfig.showFooter) {
+                ticketHTML += `<p style="margin:3px 0;font-size:10px;">${ticketConfig.footerText}</p>`;
+            }
+
+            ticketHTML += `</div>`;
+
+            const printWindow = window.open('', '', 'width=400,height=600');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <style>
+                        @media print {
+                            @page { size: 80mm auto; margin: 0; }
+                            body { margin: 0; padding: 0; }
+                        }
+                        body { font-family: 'Courier New', monospace; }
+                    </style>
+                </head>
+                <body>${ticketHTML}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            setTimeout(() => printWindow.print(), 100);
+        }
+
+        function printPaymentTicket(paymentId) {
+            const payment = appData.payments.find(p => p.id === paymentId);
+            const client = appData.clients.find(c => c.id === payment.clientId);
+
+            let ticketHTML = '<div style="width:80mm;margin:0 auto;padding:10px;font-family:\'Courier New\',monospace;font-size:11px;text-align:center;">';
+
+            if (ticketConfig.showLogo) {
+                ticketHTML += `<h3 style="margin:5px 0;">${ticketConfig.businessName}</h3><hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+            }
+
+            ticketHTML += `<p style="margin:3px 0;"><strong>RECIBO DE PAGO</strong></p>`;
+
+            if (ticketConfig.showDate) {
+                ticketHTML += `<p style="margin:3px 0;font-size:10px;">${new Date(payment.date).toLocaleDateString('es-ES')}</p>`;
+            }
+
+            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+            if (ticketConfig.showClientName) {
+                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Cliente:</span><br>${client.name}</p>`;
+            }
+
+            if (ticketConfig.showClientPhone) {
+                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Tel:</span><br>${client.phone || 'N/A'}</p>`;
+            }
+
+            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+            ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Método:</span><br>${payment.method}</p>`;
+            if (payment.ref) {
+                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Ref:</span> ${payment.ref}</p>`;
+            }
+
+            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+            if (ticketConfig.showAmount) {
+                ticketHTML += `<p style="margin:3px 0;font-size:13px;font-weight:bold;">MONTO: $${payment.amount.toFixed(2)}</p>`;
+            }
+
+            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+            if (ticketConfig.showFooter) {
+                ticketHTML += `<p style="margin:3px 0;font-size:10px;">${ticketConfig.footerText}</p>`;
+            }
+
+            ticketHTML += `</div>`;
+
+            const printWindow = window.open('', '', 'width=400,height=600');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <style>
+                        @media print {
+                            @page { size: 80mm auto; margin: 0; }
+                            body { margin: 0; padding: 0; }
+                        }
+                        body { font-family: 'Courier New', monospace; }
+                    </style>
+                </head>
+                <body>${ticketHTML}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            setTimeout(() => printWindow.print(), 100);
+        }
+
         function renderOrders() {
             const container = document.getElementById('ordersList');
             if (!appData.orders.length) { container.innerHTML = '<div class="empty-state">Sin pedidos</div>'; return; }
@@ -1052,7 +1683,7 @@
             appData.orders.forEach(order => {
                 const client = appData.clients.find(c => c.id === order.clientId);
                 const colors = {'pendiente':'#fff3cd','confirmado':'#d1ecf1','entregado':'#d4edda'};
-                html += `<tr><td>${client?.name || '-'}</td><td>${order.date}</td><td>$${order.amount.toFixed(2)}</td><td><span class="status-badge" style="background:${colors[order.status]};color:#333;">${order.status}</span></td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editOrder(${order.id})">Editar</button> <button class="btn-danger" onclick="deleteOrder(${order.id})">X</button></td></tr>`;
+                html += `<tr><td>${client?.name || '-'}</td><td>${order.date}</td><td>$${order.amount.toFixed(2)}</td><td><span class="status-badge" style="background:${colors[order.status]};color:#333;">${order.status}</span></td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="printOrderTicket(${order.id})">🖨️</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editOrder(${order.id})">Editar</button> <button class="btn-danger" onclick="deleteOrder(${order.id})">X</button></td></tr>`;
             });
             container.innerHTML = html + '</tbody></table>';
         }
@@ -1093,7 +1724,7 @@
             let html = '<table><thead><tr><th>Cliente</th><th>Monto</th><th>Fecha</th><th>Método</th><th>Acciones</th></tr></thead><tbody>';
             appData.payments.forEach(payment => {
                 const client = appData.clients.find(c => c.id === payment.clientId);
-                html += `<tr><td>${client?.name || '-'}</td><td>$${payment.amount.toFixed(2)}</td><td>${payment.date}</td><td>${payment.method}</td><td><button class="btn-danger" onclick="deletePayment(${payment.id})">X</button></td></tr>`;
+                html += `<tr><td>${client?.name || '-'}</td><td>$${payment.amount.toFixed(2)}</td><td>${payment.date}</td><td>${payment.method}</td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="printPaymentTicket(${payment.id})">🖨️</button> <button class="btn-danger" onclick="deletePayment(${payment.id})">X</button></td></tr>`;
             });
             container.innerHTML = html + '</tbody></table>';
         }
@@ -1230,7 +1861,7 @@
         }
 
         function clearAllData() {
-            if (!confirm('¿Eliminar TODOS los datos?')) return;
+            if (!confirm('¿Eliminar TODOS los datos? No se puede deshacer.')) return;
             appData = { clients: [], orders: [], payments: [] };
             localStorage.removeItem('appData');
             renderAll();
@@ -1275,8 +1906,14 @@
             document.getElementById('detailsModal').classList.remove('active');
         }
 
+        function closeHistory() {
+            document.getElementById('historyModal').classList.remove('active');
+        }
+
         window.onclick = e => {
             if (e.target === document.getElementById('detailsModal')) document.getElementById('detailsModal').classList.remove('active');
+            if (e.target === document.getElementById('historyModal')) document.getElementById('historyModal').classList.remove('active');
+            if (e.target === document.getElementById('settingsModal')) closeSettings();
         }
 
         initApp();
