@@ -519,15 +519,6 @@
             margin: 8px 0;
         }
 
-        .ticket-section {
-            margin: 10px 0;
-        }
-
-        .ticket-label {
-            font-weight: bold;
-            font-size: 10px;
-        }
-
         .client-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -1115,14 +1106,20 @@
                 html += `<p>${new Date().toLocaleDateString('es-ES')}</p>`;
             }
 
-            html += `<div class="ticket-section">
-                ${document.getElementById('showClientName').checked ? `<p><span class="ticket-label">Cliente:</span><br>${document.getElementById('businessName').value}</p>` : ''}
-                ${document.getElementById('showClientPhone').checked ? `<p><span class="ticket-label">Tel:</span><br>0000000000</p>` : ''}
-                ${document.getElementById('showClientAddress').checked ? `<p><span class="ticket-label">Dir:</span><br>Calle Principal</p>` : ''}
-            </div><hr>`;
+            if (document.getElementById('showClientName').checked) {
+                html += `<p style="margin:2px 0;">Cliente: ${document.getElementById('businessName').value}</p>`;
+            }
+            if (document.getElementById('showClientPhone').checked) {
+                html += `<p style="margin:2px 0;">Tel: 0000000000</p>`;
+            }
+            if (document.getElementById('showClientAddress').checked) {
+                html += `<p style="margin:2px 0;">Dir: Calle Principal</p>`;
+            }
+
+            html += `<hr>`;
 
             if (document.getElementById('showDescription').checked) {
-                html += `<p><span class="ticket-label">Descripción:</span><br>Producto ejemplo</p><hr>`;
+                html += `<p style="margin:2px 0;">Desc: Producto ejemplo<br>Cant: 1</p><hr>`;
             }
 
             if (document.getElementById('showAmount').checked) {
@@ -1558,24 +1555,23 @@
             ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
             if (ticketConfig.showClientName) {
-                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Cliente:</span><br>${client.name}</p>`;
+                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Cliente: ${client.name}</p>`;
             }
-
             if (ticketConfig.showClientPhone) {
-                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Tel:</span><br>${client.phone || 'N/A'}</p>`;
+                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Tel: ${client.phone || 'N/A'}</p>`;
             }
-
             if (ticketConfig.showClientAddress) {
-                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Dir:</span><br>${client.address || 'N/A'}</p>`;
+                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Dir: ${client.address || 'N/A'}</p>`;
             }
 
             ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
             if (ticketConfig.showDescription) {
-                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Descripción:</span><br>${order.description}</p>`;
+                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Desc: ${order.description}`;
                 if (order.qty) {
-                    ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Cantidad:</span> ${order.qty}</p>`;
+                    ticketHTML += `<br>Cant: ${order.qty}`;
                 }
+                ticketHTML += `</p>`;
             }
 
             ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
@@ -1630,18 +1626,19 @@
             ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
             if (ticketConfig.showClientName) {
-                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Cliente:</span><br>${client.name}</p>`;
+                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Cliente: ${client.name}</p>`;
             }
-
             if (ticketConfig.showClientPhone) {
-                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Tel:</span><br>${client.phone || 'N/A'}</p>`;
+                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Tel: ${client.phone || 'N/A'}</p>`;
             }
 
             ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
-            ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Método:</span><br>${payment.method}</p>`;
+            
+            ticketHTML += `<p style="margin:2px 0;font-size:10px;">Método: ${payment.method}`;
             if (payment.ref) {
-                ticketHTML += `<p style="margin:3px 0;"><span style="font-weight:bold;font-size:10px;">Ref:</span> ${payment.ref}</p>`;
+                ticketHTML += `<br>Ref: ${payment.ref}`;
             }
+            ticketHTML += `</p>`;
 
             ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
