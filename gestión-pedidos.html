@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Pedidos</title>
+</head>
+<body>
+    <h1>Sistema de Gestión de Pedidos</h1>
+    <form id="orderForm">
+        <input type="text" id="orderName" placeholder="Nombre del Pedido" required>
+        <input type="number" id="orderQuantity" placeholder="Cantidad" required>
+        <button type="submit">Agregar Pedido</button>
+    </form>
+    <ul id="orderList"></ul>
+
+    <script>
+        let db;
+
+        const request = indexedDB.open('ordersDB', 1);
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            loadOrders();
+        };
+
+        request.onerror = (event) => {
+            console.error("Error al abrir la base de datos:", event.target.errorCode);
+        };
+
+        document.getElementById('orderForm').onsubmit = function(event) {
+            event.preventDefault();
+            const orderName = document.getElementById('orderName').value;
+            const orderQuantity = document.getElementById('orderQuantity').value;
+            addOrder(orderName, orderQuantity);
+            this.reset();
+        };
+
+        function addOrder(name, quantity) {
+            const transaction = db.transaction(['orders'], 'readwrite');
+            const store = transaction.objectStore('orders');
+            store.add({ name, quantity });
+            transaction.oncomplete = loadOrders;
+            transaction.onerror = (event) => {
+                console.error("Error al agregar el pedido:", event.target.errorCode);
+            };
+        }
+
+        function loadOrders() {
+            const transaction = db.transaction(['orders'], 'readonly');
+            const store = transaction.objectStore('orders');
+            const request = store.getAll();
+
+            request.onsuccess = (event) => {
+                const orders = event.target.result;
+                const orderList = document.getElementById('orderList');
+                orderList.innerHTML = '';
+                orders.forEach(order => {
+                    const li = document.createElement('li');
+                    li.textContent = `Pedido: ${order.name}, Cantidad: ${order.quantity}`;
+                    orderList.appendChild(li);
+                });
+            };
+        }
+    </script>
+</body>
+</html>
