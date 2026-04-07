@@ -435,21 +435,6 @@
             font-weight: 600;
         }
 
-        .status-paid {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-favor {
-            background: #cce5ff;
-            color: #004085;
-        }
-
         .empty-state {
             text-align: center;
             padding: 30px 15px;
@@ -669,6 +654,13 @@
             margin-right: 10px;
         }
 
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: bold;
+        }
+
         @media print {
             @page {
                 size: 80mm auto;
@@ -745,7 +737,7 @@
     <div class="container">
         <header>
             <h1>📦 Gestión de Pedidos</h1>
-            <p>Sistema offline</p>
+            <p>Sistema offline con IndexedDB</p>
         </header>
 
         <div class="status-bar">
@@ -1057,7 +1049,117 @@
     <input type="file" id="importFile" style="display:none" onchange="handleImport(event)">
 
     <script>
-        let appData = { clients: [], orders: [], payments: [] };
+        // IndexedDB Setup
+        let db;
+        const DB_NAME = 'GestionPedidosDB';
+        const DB_VERSION = 1;
+
+        const STORES = {
+            CLIENTS: 'clients',
+            ORDERS: 'orders',
+            PAYMENTS: 'payments',
+            CONFIG: 'config'
+        };
+
+        // Inicializar IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve();
+                };
+
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    
+                    // Crear object stores
+                    if (!db.objectStoreNames.contains(STORES.CLIENTS)) {
+                        db.createObjectStore(STORES.CLIENTS, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(STORES.ORDERS)) {
+                        db.createObjectStore(STORES.ORDERS, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(STORES.PAYMENTS)) {
+                        db.createObjectStore(STORES.PAYMENTS, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(STORES.CONFIG)) {
+                        db.createObjectStore(STORES.CONFIG, { keyPath: 'key' });
+                    }
+                };
+            });
+        }
+
+        // CRUD Operations
+        function getAll(storeName) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+            });
+        }
+
+        function getById(storeName, id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.get(id);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+            });
+        }
+
+        function add(storeName, data) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.add(data);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+            });
+        }
+
+        function put(storeName, data) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.put(data);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+            });
+        }
+
+        function delete_(storeName, id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(id);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve();
+            });
+        }
+
+        function clear(storeName) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.clear();
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve();
+            });
+        }
+
+        // Variables
         let ticketConfig = {
             showLogo: true,
             showClientName: true,
@@ -1090,40 +1192,35 @@
             summary: []
         };
 
-        function initApp() {
-            loadData();
-            loadTicketConfig();
-            setCurrentDate();
-            renderAll();
-            setupSearchListeners();
-        }
-
-        function loadData() {
-            const saved = localStorage.getItem('appData');
-            if (saved) {
-                try {
-                    appData = JSON.parse(saved);
-                } catch (e) {
-                    console.error('Error cargando datos:', e);
-                    appData = { clients: [], orders: [], payments: [] };
-                }
+        async function initApp() {
+            try {
+                await initDB();
+                await loadTicketConfig();
+                setCurrentDate();
+                await renderAll();
+                setupSearchListeners();
+            } catch (error) {
+                console.error('Error inicializando app:', error);
             }
         }
 
-        function loadTicketConfig() {
-            const saved = localStorage.getItem('ticketConfig');
-            if (saved) {
-                try {
-                    ticketConfig = JSON.parse(saved);
-                } catch (e) {
-                    console.error('Error cargando configuración:', e);
+        async function loadTicketConfig() {
+            try {
+                const config = await getById(STORES.CONFIG, 'ticketConfig');
+                if (config) {
+                    ticketConfig = config.value;
                 }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
             }
         }
 
-        function saveData() {
-            localStorage.setItem('appData', JSON.stringify(appData));
-            updateClientCount();
+        async function saveTicketConfig() {
+            try {
+                await put(STORES.CONFIG, { key: 'ticketConfig', value: ticketConfig });
+            } catch (error) {
+                console.error('Error guardando configuración:', error);
+            }
         }
 
         function saveSettings() {
@@ -1138,7 +1235,7 @@
             ticketConfig.businessName = document.getElementById('businessName').value;
             ticketConfig.footerText = document.getElementById('footerText').value;
 
-            localStorage.setItem('ticketConfig', JSON.stringify(ticketConfig));
+            saveTicketConfig();
             updatePreview();
             alert('✅ Configuración guardada');
         }
@@ -1239,51 +1336,57 @@
             document.getElementById('footerText').addEventListener('input', updatePreview);
         }
 
-        function renderPagination(containerId, currentPage, totalPages, pageCallback) {
+        function renderPagination(containerId, currentPageNum, totalPages, pageCallback) {
             const container = document.getElementById(containerId);
             if (totalPages <= 1) {
                 container.innerHTML = '';
                 return;
             }
 
-            let html = `<div class="pagination-info">Página ${currentPage} de ${totalPages}</div>`;
+            let html = `<div class="pagination-info">Página ${currentPageNum} de ${totalPages}</div>`;
             
-            html += `<button class="btn-pagination" onclick="${pageCallback}(1)" ${currentPage === 1 ? 'disabled' : ''}>« Primera</button>`;
-            html += `<button class="btn-pagination" onclick="${pageCallback}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹ Anterior</button>`;
+            html += `<button class="btn-pagination" onclick="${pageCallback}(1)" ${currentPageNum === 1 ? 'disabled' : ''}>« Primera</button>`;
+            html += `<button class="btn-pagination" onclick="${pageCallback}(${currentPageNum - 1})" ${currentPageNum === 1 ? 'disabled' : ''}>‹ Anterior</button>`;
             
-            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
-                html += `<button class="btn-pagination ${i === currentPage ? 'active' : ''}" onclick="${pageCallback}(${i})">${i}</button>`;
+            for (let i = Math.max(1, currentPageNum - 2); i <= Math.min(totalPages, currentPageNum + 2); i++) {
+                html += `<button class="btn-pagination ${i === currentPageNum ? 'active' : ''}" onclick="${pageCallback}(${i})">${i}</button>`;
             }
             
-            html += `<button class="btn-pagination" onclick="${pageCallback}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente ›</button>`;
-            html += `<button class="btn-pagination" onclick="${pageCallback}(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>Última »</button>`;
+            html += `<button class="btn-pagination" onclick="${pageCallback}(${currentPageNum + 1})" ${currentPageNum === totalPages ? 'disabled' : ''}>Siguiente ›</button>`;
+            html += `<button class="btn-pagination" onclick="${pageCallback}(${totalPages})" ${currentPageNum === totalPages ? 'disabled' : ''}>Última »</button>`;
             
             container.innerHTML = html;
         }
 
-        function filterClientsTable() {
+        async function filterClientsTable() {
             const query = document.getElementById('clientsTableSearch').value.toLowerCase();
-            filteredData.clients = appData.clients.filter(c => 
+            const allClients = await getAll(STORES.CLIENTS);
+            filteredData.clients = allClients.filter(c => 
                 c.name.toLowerCase().includes(query) ||
                 (c.phone && c.phone.toLowerCase().includes(query)) ||
                 (c.address && c.address.toLowerCase().includes(query))
             );
-            renderClients();
+            await renderClients();
         }
 
-        function filterAccountsTable() {
+        async function filterAccountsTable() {
             const query = document.getElementById('accountsTableSearch').value.toLowerCase();
-            filteredData.accounts = appData.clients.filter(c =>
+            const allClients = await getAll(STORES.CLIENTS);
+            filteredData.accounts = allClients.filter(c =>
                 c.name.toLowerCase().includes(query)
             );
-            renderAccountsStatus();
+            await renderAccountsStatus();
         }
 
-        function filterReportTable() {
+        async function filterReportTable() {
             const query = document.getElementById('reportTableSearch').value.toLowerCase();
-            filteredData.summary = appData.clients.filter(client => {
-                const orders = appData.orders.filter(o => o.clientId === client.id);
-                const payments = appData.payments.filter(p => p.clientId === client.id);
+            const allClients = await getAll(STORES.CLIENTS);
+            const allOrders = await getAll(STORES.ORDERS);
+            const allPayments = await getAll(STORES.PAYMENTS);
+
+            filteredData.summary = allClients.filter(client => {
+                const orders = allOrders.filter(o => o.clientId === client.id);
+                const payments = allPayments.filter(p => p.clientId === client.id);
                 const totalO = orders.reduce((s, o) => s + o.amount, 0);
                 const totalP = payments.reduce((s, p) => s + p.amount, 0);
                 const balance = totalO - totalP;
@@ -1296,7 +1399,7 @@
 
                 return showRow && client.name.toLowerCase().includes(query);
             });
-            updateReports();
+            await updateReports();
         }
 
         function filterReports(type) {
@@ -1307,9 +1410,10 @@
             updateReports();
         }
 
-        function filterOrderClientSelect() {
+        async function filterOrderClientSelect() {
             const query = document.getElementById('orderClientSearch').value.toLowerCase();
-            const results = appData.clients.filter(c => 
+            const allClients = await getAll(STORES.CLIENTS);
+            const results = allClients.filter(c => 
                 c.name.toLowerCase().includes(query) || 
                 (c.phone && c.phone.toLowerCase().includes(query)) || 
                 (c.address && c.address.toLowerCase().includes(query))
@@ -1327,9 +1431,10 @@
             document.getElementById('orderClientOptions').classList.toggle('show', query.length > 0 && results.length > 0);
         }
 
-        function filterPaymentClientSelect() {
+        async function filterPaymentClientSelect() {
             const query = document.getElementById('paymentClientSearch').value.toLowerCase();
-            const results = appData.clients.filter(c => 
+            const allClients = await getAll(STORES.CLIENTS);
+            const results = allClients.filter(c => 
                 c.name.toLowerCase().includes(query) || 
                 (c.phone && c.phone.toLowerCase().includes(query)) || 
                 (c.address && c.address.toLowerCase().includes(query))
@@ -1348,51 +1453,65 @@
         }
 
         function selectOrderClient(id) {
-            const client = appData.clients.find(c => c.id === id);
-            document.getElementById('orderClient').value = id;
-            document.getElementById('orderClientSearch').value = client.name;
-            document.getElementById('orderClientOptions').classList.remove('show');
+            getById(STORES.CLIENTS, id).then(client => {
+                document.getElementById('orderClient').value = id;
+                document.getElementById('orderClientSearch').value = client.name;
+                document.getElementById('orderClientOptions').classList.remove('show');
+            });
         }
 
         function selectPaymentClient(id) {
-            const client = appData.clients.find(c => c.id === id);
-            document.getElementById('paymentClient').value = id;
-            document.getElementById('paymentClientSearch').value = client.name;
-            document.getElementById('paymentClientOptions').classList.remove('show');
+            getById(STORES.CLIENTS, id).then(client => {
+                document.getElementById('paymentClient').value = id;
+                document.getElementById('paymentClientSearch').value = client.name;
+                document.getElementById('paymentClientOptions').classList.remove('show');
+            });
         }
 
         // CLIENTES
-        function saveClient() {
+        async function saveClient() {
             const name = document.getElementById('clientName').value.trim();
             if (!name) { showAlert('alertClientes', 'Ingrese nombre', 'error'); return; }
 
-            if (editingClientId) {
-                const client = appData.clients.find(c => c.id === editingClientId);
-                if (client) {
-                    client.name = name;
-                    client.phone = document.getElementById('clientPhone').value.trim();
-                    client.email = document.getElementById('clientEmail').value.trim();
-                    client.doc = document.getElementById('clientDoc').value.trim();
-                    client.address = document.getElementById('clientAddress').value.trim();
+            try {
+                if (editingClientId) {
+                    const client = await getById(STORES.CLIENTS, editingClientId);
+                    if (client) {
+                        client.name = name;
+                        client.phone = document.getElementById('clientPhone').value.trim();
+                        client.email = document.getElementById('clientEmail').value.trim();
+                        client.doc = document.getElementById('clientDoc').value.trim();
+                        client.address = document.getElementById('clientAddress').value.trim();
+                        await put(STORES.CLIENTS, client);
+                    }
+                    await renderClients();
+                    cancelEditClient();
+                    await updateClientSelects();
+                    showAlert('alertClientes', '✅ Cliente actualizado', 'success');
+                } else {
+                    await add(STORES.CLIENTS, {
+                        id: Date.now(),
+                        name,
+                        phone: document.getElementById('clientPhone').value.trim(),
+                        email: document.getElementById('clientEmail').value.trim(),
+                        doc: document.getElementById('clientDoc').value.trim(),
+                        address: document.getElementById('clientAddress').value.trim(),
+                        createdAt: new Date().toISOString()
+                    });
+                    clearClientForm();
+                    currentPage.clients = 1;
+                    await renderClients();
+                    await updateClientSelects();
+                    showAlert('alertClientes', '✅ Cliente agregado', 'success');
                 }
-                saveData(); renderClients(); cancelEditClient(); updateClientSelects();
-                showAlert('alertClientes', '✅ Cliente actualizado', 'success');
-            } else {
-                appData.clients.push({
-                    id: Date.now(), name,
-                    phone: document.getElementById('clientPhone').value.trim(),
-                    email: document.getElementById('clientEmail').value.trim(),
-                    doc: document.getElementById('clientDoc').value.trim(),
-                    address: document.getElementById('clientAddress').value.trim(),
-                    createdAt: new Date().toISOString()
-                });
-                saveData(); clearClientForm(); currentPage.clients = 1; renderClients(); updateClientSelects();
-                showAlert('alertClientes', '✅ Cliente agregado', 'success');
+                await updateClientCount();
+            } catch (error) {
+                console.error('Error guardando cliente:', error);
             }
         }
 
-        function editClient(id) {
-            const client = appData.clients.find(c => c.id === id);
+        async function editClient(id) {
+            const client = await getById(STORES.CLIENTS, id);
             if (!client) return;
             editingClientId = id;
             document.getElementById('clientName').value = client.name;
@@ -1408,20 +1527,37 @@
         }
 
         function cancelEditClient() {
-            editingClientId = null; clearClientForm();
+            editingClientId = null;
+            clearClientForm();
             document.getElementById('clientFormCard').classList.remove('editing');
             document.getElementById('clientFormTitle').textContent = 'Nuevo Cliente';
             document.getElementById('clientSubmitBtn').textContent = '➕ Agregar';
             document.getElementById('clientCancelBtn').style.display = 'none';
         }
 
-        function deleteClient(id) {
+        async function deleteClient(id) {
             if (!confirm('¿Eliminar cliente?')) return;
-            appData.clients = appData.clients.filter(c => c.id !== id);
-            appData.orders = appData.orders.filter(o => o.clientId !== id);
-            appData.payments = appData.payments.filter(p => p.clientId !== id);
-            saveData(); renderClients(); renderOrders(); renderPayments(); updateClientSelects();
-            showAlert('alertClientes', 'Cliente eliminado', 'success');
+            try {
+                await delete_(STORES.CLIENTS, id);
+                const allOrders = await getAll(STORES.ORDERS);
+                const allPayments = await getAll(STORES.PAYMENTS);
+
+                for (const order of allOrders.filter(o => o.clientId === id)) {
+                    await delete_(STORES.ORDERS, order.id);
+                }
+                for (const payment of allPayments.filter(p => p.clientId === id)) {
+                    await delete_(STORES.PAYMENTS, payment.id);
+                }
+
+                await renderClients();
+                await renderOrders();
+                await renderPayments();
+                await updateClientSelects();
+                await updateClientCount();
+                showAlert('alertClientes', 'Cliente eliminado', 'success');
+            } catch (error) {
+                console.error('Error eliminando cliente:', error);
+            }
         }
 
         function clearClientForm() {
@@ -1437,11 +1573,15 @@
             renderClients();
         }
 
-        function renderClients() {
+        async function renderClients() {
             const container = document.getElementById('clientsList');
-            const toDisplay = filteredData.clients.length > 0 ? filteredData.clients : appData.clients;
+            const toDisplay = filteredData.clients.length > 0 ? filteredData.clients : await getAll(STORES.CLIENTS);
             
-            if (!toDisplay.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
+            if (!toDisplay.length) {
+                container.innerHTML = '<div class="empty-state">Sin clientes</div>';
+                document.getElementById('clientsPagination').innerHTML = '';
+                return;
+            }
             
             const totalPages = Math.ceil(toDisplay.length / ITEMS_PER_PAGE);
             const start = (currentPage.clients - 1) * ITEMS_PER_PAGE;
@@ -1457,10 +1597,13 @@
             renderPagination('clientsPagination', currentPage.clients, totalPages, 'goToClientsPage');
         }
 
-        function viewClientHistory(id) {
-            const client = appData.clients.find(c => c.id === id);
-            const orders = appData.orders.filter(o => o.clientId === id);
-            const payments = appData.payments.filter(p => p.clientId === id);
+        async function viewClientHistory(id) {
+            const client = await getById(STORES.CLIENTS, id);
+            const allOrders = await getAll(STORES.ORDERS);
+            const allPayments = await getAll(STORES.PAYMENTS);
+
+            const orders = allOrders.filter(o => o.clientId === id);
+            const payments = allPayments.filter(p => p.clientId === id);
             
             const totalO = orders.reduce((s, o) => s + o.amount, 0);
             const totalP = payments.reduce((s, p) => s + p.amount, 0);
@@ -1549,42 +1692,55 @@
         }
 
         // PEDIDOS
-        function saveOrder() {
+        async function saveOrder() {
             const clientId = document.getElementById('orderClient').value;
             const description = document.getElementById('orderDescription').value.trim();
             const amount = parseFloat(document.getElementById('orderAmount').value) || 0;
             if (!clientId || !description || amount <= 0) { showAlert('alertPedidos', 'Complete campos requeridos', 'error'); return; }
 
-            if (editingOrderId) {
-                const order = appData.orders.find(o => o.id === editingOrderId);
-                if (order) {
-                    order.clientId = parseInt(clientId);
-                    order.date = document.getElementById('orderDate').value;
-                    order.description = description;
-                    order.qty = parseInt(document.getElementById('orderQty').value) || 0;
-                    order.amount = amount;
-                    order.status = document.getElementById('orderStatus').value;
-                    order.delivery = document.getElementById('orderDelivery').value;
+            try {
+                if (editingOrderId) {
+                    const order = await getById(STORES.ORDERS, editingOrderId);
+                    if (order) {
+                        order.clientId = parseInt(clientId);
+                        order.date = document.getElementById('orderDate').value;
+                        order.description = description;
+                        order.qty = parseInt(document.getElementById('orderQty').value) || 0;
+                        order.amount = amount;
+                        order.status = document.getElementById('orderStatus').value;
+                        order.delivery = document.getElementById('orderDelivery').value;
+                        await put(STORES.ORDERS, order);
+                    }
+                    await renderOrders();
+                    cancelEditOrder();
+                    showAlert('alertPedidos', '✅ Pedido actualizado', 'success');
+                } else {
+                    await add(STORES.ORDERS, {
+                        id: Date.now(),
+                        clientId: parseInt(clientId),
+                        date: document.getElementById('orderDate').value,
+                        description,
+                        qty: parseInt(document.getElementById('orderQty').value) || 0,
+                        amount,
+                        status: document.getElementById('orderStatus').value,
+                        delivery: document.getElementById('orderDelivery').value,
+                        createdAt: new Date().toISOString()
+                    });
+                    clearOrderForm();
+                    currentPage.orders = 1;
+                    await renderOrders();
+                    showAlert('alertPedidos', '✅ Pedido registrado', 'success');
                 }
-                saveData(); renderOrders(); cancelEditOrder();
-                showAlert('alertPedidos', '✅ Pedido actualizado', 'success');
-            } else {
-                appData.orders.push({
-                    id: Date.now(), clientId: parseInt(clientId), date: document.getElementById('orderDate').value,
-                    description, qty: parseInt(document.getElementById('orderQty').value) || 0, amount,
-                    status: document.getElementById('orderStatus').value, delivery: document.getElementById('orderDelivery').value,
-                    createdAt: new Date().toISOString()
-                });
-                saveData(); clearOrderForm(); currentPage.orders = 1; renderOrders();
-                showAlert('alertPedidos', '✅ Pedido registrado', 'success');
+            } catch (error) {
+                console.error('Error guardando pedido:', error);
             }
         }
 
-        function editOrder(id) {
-            const order = appData.orders.find(o => o.id === id);
+        async function editOrder(id) {
+            const order = await getById(STORES.ORDERS, id);
             if (!order) return;
             editingOrderId = id;
-            const client = appData.clients.find(c => c.id === order.clientId);
+            const client = await getById(STORES.CLIENTS, order.clientId);
             document.getElementById('orderClient').value = order.clientId;
             document.getElementById('orderClientSearch').value = client?.name || '';
             document.getElementById('orderDate').value = order.date;
@@ -1601,18 +1757,23 @@
         }
 
         function cancelEditOrder() {
-            editingOrderId = null; clearOrderForm();
+            editingOrderId = null;
+            clearOrderForm();
             document.getElementById('orderFormCard').classList.remove('editing');
             document.getElementById('orderFormTitle').textContent = 'Nuevo Pedido';
             document.getElementById('orderSubmitBtn').textContent = '➕ Registrar';
             document.getElementById('orderCancelBtn').style.display = 'none';
         }
 
-        function deleteOrder(id) {
+        async function deleteOrder(id) {
             if (!confirm('¿Eliminar?')) return;
-            appData.orders = appData.orders.filter(o => o.id !== id);
-            saveData(); renderOrders();
-            showAlert('alertPedidos', 'Pedido eliminado', 'success');
+            try {
+                await delete_(STORES.ORDERS, id);
+                await renderOrders();
+                showAlert('alertPedidos', 'Pedido eliminado', 'success');
+            } catch (error) {
+                console.error('Error eliminando pedido:', error);
+            }
         }
 
         function clearOrderForm() {
@@ -1632,115 +1793,138 @@
         }
 
         function printOrderTicket(orderId) {
-            const order = appData.orders.find(o => o.id === orderId);
-            const client = appData.clients.find(c => c.id === order.clientId);
+            getById(STORES.ORDERS, orderId).then(order => {
+                getById(STORES.CLIENTS, order.clientId).then(client => {
+                    let ticketHTML = '<div style="width:80mm;margin:0 auto;padding:10px;font-family:\'Courier New\',monospace;font-size:11px;text-align:center;">';
 
-            let ticketHTML = '<div style="width:80mm;margin:0 auto;padding:10px;font-family:\'Courier New\',monospace;font-size:11px;text-align:center;">';
+                    if (ticketConfig.showLogo) {
+                        ticketHTML += `<h3 style="margin:5px 0;">${ticketConfig.businessName}</h3><hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+                    }
 
-            if (ticketConfig.showLogo) {
-                ticketHTML += `<h3 style="margin:5px 0;">${ticketConfig.businessName}</h3><hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
-            }
+                    ticketHTML += `<p style="margin:3px 0;"><strong>PEDIDO</strong></p>`;
 
-            ticketHTML += `<p style="margin:3px 0;"><strong>PEDIDO</strong></p>`;
+                    if (ticketConfig.showDate) {
+                        ticketHTML += `<p style="margin:3px 0;font-size:10px;">${new Date(order.date).toLocaleDateString('es-ES')}</p>`;
+                    }
 
-            if (ticketConfig.showDate) {
-                ticketHTML += `<p style="margin:3px 0;font-size:10px;">${new Date(order.date).toLocaleDateString('es-ES')}</p>`;
-            }
+                    ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
-            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+                    if (ticketConfig.showClientName) {
+                        ticketHTML += `<p style="margin:2px 0;font-size:10px;">Cliente: ${client.name}</p>`;
+                    }
+                    if (ticketConfig.showClientPhone) {
+                        ticketHTML += `<p style="margin:2px 0;font-size:10px;">Tel: ${client.phone || 'N/A'}</p>`;
+                    }
+                    if (ticketConfig.showClientAddress) {
+                        ticketHTML += `<p style="margin:2px 0;font-size:10px;">Dir: ${client.address || 'N/A'}</p>`;
+                    }
 
-            if (ticketConfig.showClientName) {
-                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Cliente: ${client.name}</p>`;
-            }
-            if (ticketConfig.showClientPhone) {
-                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Tel: ${client.phone || 'N/A'}</p>`;
-            }
-            if (ticketConfig.showClientAddress) {
-                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Dir: ${client.address || 'N/A'}</p>`;
-            }
+                    ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
-            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
-
-            if (ticketConfig.showDescription) {
-                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Desc: ${order.description}`;
-                if (order.qty) {
-                    ticketHTML += `<br>Cant: ${order.qty}`;
-                }
-                ticketHTML += `</p>`;
-            }
-
-            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
-
-            if (ticketConfig.showAmount) {
-                ticketHTML += `<p style="margin:3px 0;font-size:13px;font-weight:bold;">TOTAL: $${order.amount.toFixed(2)}</p>`;
-            }
-
-            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
-
-            if (ticketConfig.showFooter) {
-                ticketHTML += `<p style="margin:3px 0;font-size:10px;">${ticketConfig.footerText}</p>`;
-            }
-
-            ticketHTML += `</div>`;
-
-            const printWindow = window.open('', '', 'width=400,height=600');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <style>
-                        @media print {
-                            @page { size: 80mm auto; margin: 0; }
-                            body { margin: 0; padding: 0; }
+                    if (ticketConfig.showDescription) {
+                        ticketHTML += `<p style="margin:2px 0;font-size:10px;">Desc: ${order.description}`;
+                        if (order.qty) {
+                            ticketHTML += `<br>Cant: ${order.qty}`;
                         }
-                        body { font-family: 'Courier New', monospace; }
-                    </style>
-                </head>
-                <body>${ticketHTML}</body>
-                </html>
-            `);
-            printWindow.document.close();
-            setTimeout(() => printWindow.print(), 100);
+                        ticketHTML += `</p>`;
+                    }
+
+                    ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+                    if (ticketConfig.showAmount) {
+                        ticketHTML += `<p style="margin:3px 0;font-size:13px;font-weight:bold;">TOTAL: $${order.amount.toFixed(2)}</p>`;
+                    }
+
+                    ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+
+                    if (ticketConfig.showFooter) {
+                        ticketHTML += `<p style="margin:3px 0;font-size:10px;">${ticketConfig.footerText}</p>`;
+                    }
+
+                    ticketHTML += `</div>`;
+
+                    const printWindow = window.open('', '', 'width=400,height=600');
+                    printWindow.document.write(`
+                        <html>
+                        <head>
+                            <style>
+                                @media print {
+                                    @page { size: 80mm auto; margin: 0; }
+                                    body { margin: 0; padding: 0; }
+                                }
+                                body { font-family: 'Courier New', monospace; }
+                            </style>
+                        </head>
+                        <body>${ticketHTML}</body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    setTimeout(() => printWindow.print(), 100);
+                });
+            });
         }
 
-        function renderOrders() {
+        async function renderOrders() {
             const container = document.getElementById('ordersList');
-            if (!appData.orders.length) { container.innerHTML = '<div class="empty-state">Sin pedidos</div>'; return; }
+            const allOrders = await getAll(STORES.ORDERS);
+            if (!allOrders.length) {
+                container.innerHTML = '<div class="empty-state">Sin pedidos</div>';
+                document.getElementById('ordersPagination').innerHTML = '';
+                return;
+            }
             
-            const totalPages = Math.ceil(appData.orders.length / ITEMS_PER_PAGE);
+            const totalPages = Math.ceil(allOrders.length / ITEMS_PER_PAGE);
             const start = (currentPage.orders - 1) * ITEMS_PER_PAGE;
             const end = start + ITEMS_PER_PAGE;
-            const pageData = appData.orders.slice(start, end);
+            const pageData = allOrders.slice(start, end);
 
             let html = '<table><thead><tr><th>Cliente</th><th>Fecha</th><th>Monto</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
-            pageData.forEach(order => {
-                const client = appData.clients.find(c => c.id === order.clientId);
+            for (const order of pageData) {
+                const client = await getById(STORES.CLIENTS, order.clientId);
                 const colors = {'pendiente':'#fff3cd','confirmado':'#d1ecf1','entregado':'#d4edda'};
                 html += `<tr><td>${client?.name || '-'}</td><td>${order.date}</td><td>$${order.amount.toFixed(2)}</td><td><span class="status-badge" style="background:${colors[order.status]};color:#333;">${order.status}</span></td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="printOrderTicket(${order.id})">🖨️</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editOrder(${order.id})">Editar</button> <button class="btn-danger" onclick="deleteOrder(${order.id})">X</button></td></tr>`;
-            });
+            }
             container.innerHTML = html + '</tbody></table>';
             
             renderPagination('ordersPagination', currentPage.orders, totalPages, 'goToOrdersPage');
         }
 
         // PAGOS
-        function addPayment() {
+        async function addPayment() {
             const clientId = document.getElementById('paymentClient').value;
             const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
             if (!clientId || amount <= 0) { showAlert('alertPagos', 'Complete campos', 'error'); return; }
-            appData.payments.push({
-                id: Date.now(), clientId: parseInt(clientId), amount, date: document.getElementById('paymentDate').value,
-                method: document.getElementById('paymentMethod').value, ref: document.getElementById('paymentRef').value.trim(),
-                createdAt: new Date().toISOString()
-            });
-            saveData(); clearPaymentForm(); currentPage.payments = 1; renderPayments(); renderAccountsStatus();
-            showAlert('alertPagos', '✅ Pago registrado', 'success');
+            
+            try {
+                await add(STORES.PAYMENTS, {
+                    id: Date.now(),
+                    clientId: parseInt(clientId),
+                    amount,
+                    date: document.getElementById('paymentDate').value,
+                    method: document.getElementById('paymentMethod').value,
+                    ref: document.getElementById('paymentRef').value.trim(),
+                    createdAt: new Date().toISOString()
+                });
+                clearPaymentForm();
+                currentPage.payments = 1;
+                await renderPayments();
+                await renderAccountsStatus();
+                showAlert('alertPagos', '✅ Pago registrado', 'success');
+            } catch (error) {
+                console.error('Error agregando pago:', error);
+            }
         }
 
-        function deletePayment(id) {
+        async function deletePayment(id) {
             if (!confirm('¿Eliminar?')) return;
-            appData.payments = appData.payments.filter(p => p.id !== id);
-            saveData(); renderPayments(); renderAccountsStatus();
-            showAlert('alertPagos', 'Pago eliminado', 'success');
+            try {
+                await delete_(STORES.PAYMENTS, id);
+                await renderPayments();
+                await renderAccountsStatus();
+                showAlert('alertPagos', 'Pago eliminado', 'success');
+            } catch (error) {
+                console.error('Error eliminando pago:', error);
+            }
         }
 
         function clearPaymentForm() {
@@ -1763,105 +1947,118 @@
         }
 
         function printPaymentTicket(paymentId) {
-            const payment = appData.payments.find(p => p.id === paymentId);
-            const client = appData.clients.find(c => c.id === payment.clientId);
+            getById(STORES.PAYMENTS, paymentId).then(payment => {
+                getById(STORES.CLIENTS, payment.clientId).then(client => {
+                    let ticketHTML = '<div style="width:80mm;margin:0 auto;padding:10px;font-family:\'Courier New\',monospace;font-size:11px;text-align:center;">';
 
-            let ticketHTML = '<div style="width:80mm;margin:0 auto;padding:10px;font-family:\'Courier New\',monospace;font-size:11px;text-align:center;">';
+                    if (ticketConfig.showLogo) {
+                        ticketHTML += `<h3 style="margin:5px 0;">${ticketConfig.businessName}</h3><hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+                    }
 
-            if (ticketConfig.showLogo) {
-                ticketHTML += `<h3 style="margin:5px 0;">${ticketConfig.businessName}</h3><hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
-            }
+                    ticketHTML += `<p style="margin:3px 0;"><strong>RECIBO DE PAGO</strong></p>`;
 
-            ticketHTML += `<p style="margin:3px 0;"><strong>RECIBO DE PAGO</strong></p>`;
+                    if (ticketConfig.showDate) {
+                        ticketHTML += `<p style="margin:3px 0;font-size:10px;">${new Date(payment.date).toLocaleDateString('es-ES')}</p>`;
+                    }
 
-            if (ticketConfig.showDate) {
-                ticketHTML += `<p style="margin:3px 0;font-size:10px;">${new Date(payment.date).toLocaleDateString('es-ES')}</p>`;
-            }
+                    ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
-            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+                    if (ticketConfig.showClientName) {
+                        ticketHTML += `<p style="margin:2px 0;font-size:10px;">Cliente: ${client.name}</p>`;
+                    }
+                    if (ticketConfig.showClientPhone) {
+                        ticketHTML += `<p style="margin:2px 0;font-size:10px;">Tel: ${client.phone || 'N/A'}</p>`;
+                    }
 
-            if (ticketConfig.showClientName) {
-                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Cliente: ${client.name}</p>`;
-            }
-            if (ticketConfig.showClientPhone) {
-                ticketHTML += `<p style="margin:2px 0;font-size:10px;">Tel: ${client.phone || 'N/A'}</p>`;
-            }
+                    ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+                    
+                    ticketHTML += `<p style="margin:2px 0;font-size:10px;">Método: ${payment.method}`;
+                    if (payment.ref) {
+                        ticketHTML += `<br>Ref: ${payment.ref}`;
+                    }
+                    ticketHTML += `</p>`;
 
-            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
-            
-            ticketHTML += `<p style="margin:2px 0;font-size:10px;">Método: ${payment.method}`;
-            if (payment.ref) {
-                ticketHTML += `<br>Ref: ${payment.ref}`;
-            }
-            ticketHTML += `</p>`;
+                    ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
-            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+                    if (ticketConfig.showAmount) {
+                        ticketHTML += `<p style="margin:3px 0;font-size:13px;font-weight:bold;">MONTO: $${payment.amount.toFixed(2)}</p>`;
+                    }
 
-            if (ticketConfig.showAmount) {
-                ticketHTML += `<p style="margin:3px 0;font-size:13px;font-weight:bold;">MONTO: $${payment.amount.toFixed(2)}</p>`;
-            }
+                    ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
 
-            ticketHTML += `<hr style="border:none;border-top:1px solid #000;margin:5px 0;">`;
+                    if (ticketConfig.showFooter) {
+                        ticketHTML += `<p style="margin:3px 0;font-size:10px;">${ticketConfig.footerText}</p>`;
+                    }
 
-            if (ticketConfig.showFooter) {
-                ticketHTML += `<p style="margin:3px 0;font-size:10px;">${ticketConfig.footerText}</p>`;
-            }
+                    ticketHTML += `</div>`;
 
-            ticketHTML += `</div>`;
-
-            const printWindow = window.open('', '', 'width=400,height=600');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <style>
-                        @media print {
-                            @page { size: 80mm auto; margin: 0; }
-                            body { margin: 0; padding: 0; }
-                        }
-                        body { font-family: 'Courier New', monospace; }
-                    </style>
-                </head>
-                <body>${ticketHTML}</body>
-                </html>
-            `);
-            printWindow.document.close();
-            setTimeout(() => printWindow.print(), 100);
+                    const printWindow = window.open('', '', 'width=400,height=600');
+                    printWindow.document.write(`
+                        <html>
+                        <head>
+                            <style>
+                                @media print {
+                                    @page { size: 80mm auto; margin: 0; }
+                                    body { margin: 0; padding: 0; }
+                                }
+                                body { font-family: 'Courier New', monospace; }
+                            </style>
+                        </head>
+                        <body>${ticketHTML}</body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    setTimeout(() => printWindow.print(), 100);
+                });
+            });
         }
 
-        function renderPayments() {
+        async function renderPayments() {
             const container = document.getElementById('paymentsList');
-            if (!appData.payments.length) { container.innerHTML = '<div class="empty-state">Sin pagos</div>'; return; }
+            const allPayments = await getAll(STORES.PAYMENTS);
+            if (!allPayments.length) {
+                container.innerHTML = '<div class="empty-state">Sin pagos</div>';
+                document.getElementById('paymentsPagination').innerHTML = '';
+                return;
+            }
             
-            const totalPages = Math.ceil(appData.payments.length / ITEMS_PER_PAGE);
+            const totalPages = Math.ceil(allPayments.length / ITEMS_PER_PAGE);
             const start = (currentPage.payments - 1) * ITEMS_PER_PAGE;
             const end = start + ITEMS_PER_PAGE;
-            const pageData = appData.payments.slice(start, end);
+            const pageData = allPayments.slice(start, end);
 
             let html = '<table><thead><tr><th>Cliente</th><th>Monto</th><th>Fecha</th><th>Método</th><th>Acciones</th></tr></thead><tbody>';
-            pageData.forEach(payment => {
-                const client = appData.clients.find(c => c.id === payment.clientId);
+            for (const payment of pageData) {
+                const client = await getById(STORES.CLIENTS, payment.clientId);
                 html += `<tr><td>${client?.name || '-'}</td><td>$${payment.amount.toFixed(2)}</td><td>${payment.date}</td><td>${payment.method}</td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="printPaymentTicket(${payment.id})">🖨️</button> <button class="btn-danger" onclick="deletePayment(${payment.id})">X</button></td></tr>`;
-            });
+            }
             container.innerHTML = html + '</tbody></table>';
             
             renderPagination('paymentsPagination', currentPage.payments, totalPages, 'goToPaymentsPage');
         }
 
-        function renderAccountsStatus() {
+        async function renderAccountsStatus() {
             const container = document.getElementById('accountsList');
-            const toDisplay = filteredData.accounts.length > 0 ? filteredData.accounts : appData.clients;
+            const toDisplay = filteredData.accounts.length > 0 ? filteredData.accounts : await getAll(STORES.CLIENTS);
             
-            if (!toDisplay.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
+            if (!toDisplay.length) {
+                container.innerHTML = '<div class="empty-state">Sin clientes</div>';
+                document.getElementById('accountsPagination').innerHTML = '';
+                return;
+            }
             
             const totalPages = Math.ceil(toDisplay.length / ITEMS_PER_PAGE);
             const start = (currentPage.accounts - 1) * ITEMS_PER_PAGE;
             const end = start + ITEMS_PER_PAGE;
             const pageData = toDisplay.slice(start, end);
 
+            const allOrders = await getAll(STORES.ORDERS);
+            const allPayments = await getAll(STORES.PAYMENTS);
+
             let html = '<table><thead><tr><th>Cliente</th><th>Deudor</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>';
             pageData.forEach(client => {
-                const orders = appData.orders.filter(o => o.clientId === client.id);
-                const payments = appData.payments.filter(p => p.clientId === client.id);
+                const orders = allOrders.filter(o => o.clientId === client.id);
+                const payments = allPayments.filter(p => p.clientId === client.id);
                 const totalO = orders.reduce((s, o) => s + o.amount, 0);
                 const totalP = payments.reduce((s, p) => s + p.amount, 0);
                 const balance = totalO - totalP;
@@ -1887,21 +2084,27 @@
         }
 
         // REPORTES
-        function updateReports() {
-            const totalClients = appData.clients.length;
-            const totalOrders = appData.orders.length;
-            const totalSales = appData.orders.reduce((s, o) => s + o.amount, 0);
-            const totalPayments = appData.payments.reduce((s, p) => s + p.amount, 0);
+        async function updateReports() {
+            const allClients = await getAll(STORES.CLIENTS);
+            const allOrders = await getAll(STORES.ORDERS);
+            const allPayments = await getAll(STORES.PAYMENTS);
+
+            const totalClients = allClients.length;
+            const totalOrders = allOrders.length;
+            const totalSales = allOrders.reduce((s, o) => s + o.amount, 0);
+            const totalPayments = allPayments.reduce((s, p) => s + p.amount, 0);
             const balance = totalSales - totalPayments;
             let debtors = 0, favor = 0;
-            appData.clients.forEach(client => {
-                const orders = appData.orders.filter(o => o.clientId === client.id);
-                const payments = appData.payments.filter(p => p.clientId === client.id);
+            
+            allClients.forEach(client => {
+                const orders = allOrders.filter(o => o.clientId === client.id);
+                const payments = allPayments.filter(p => p.clientId === client.id);
                 const totalO = orders.reduce((s, o) => s + o.amount, 0);
                 const totalP = payments.reduce((s, p) => s + p.amount, 0);
                 if (totalO - totalP > 0) debtors++;
                 if (totalO - totalP < 0) favor++;
             });
+            
             document.getElementById('statClients').textContent = totalClients;
             document.getElementById('statOrders').textContent = totalOrders;
             document.getElementById('statSales').textContent = '$' + totalSales.toFixed(0);
@@ -1909,7 +2112,7 @@
             document.getElementById('statBalance').textContent = '$' + balance.toFixed(0);
             document.getElementById('statDebtors').textContent = debtors + '+' + favor;
 
-            renderSummary();
+            await renderSummary();
         }
 
         function goToSummaryPage(page) {
@@ -1917,8 +2120,12 @@
             renderSummary();
         }
 
-        function renderSummary() {
-            const toDisplay = filteredData.summary.length > 0 ? filteredData.summary : appData.clients;
+        async function renderSummary() {
+            const allClients = await getAll(STORES.CLIENTS);
+            const allOrders = await getAll(STORES.ORDERS);
+            const allPayments = await getAll(STORES.PAYMENTS);
+
+            const toDisplay = filteredData.summary.length > 0 ? filteredData.summary : allClients;
             const container = document.getElementById('summaryList');
             
             const totalPages = Math.ceil(toDisplay.length / ITEMS_PER_PAGE);
@@ -1928,8 +2135,8 @@
 
             let summaryHtml = '<table><thead><tr><th>Cliente</th><th>Deudor</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>';
             pageData.forEach(client => {
-                const orders = appData.orders.filter(o => o.clientId === client.id);
-                const payments = appData.payments.filter(p => p.clientId === client.id);
+                const orders = allOrders.filter(o => o.clientId === client.id);
+                const payments = allPayments.filter(p => p.clientId === client.id);
                 const totalO = orders.reduce((s, o) => s + o.amount, 0);
                 const totalP = payments.reduce((s, p) => s + p.amount, 0);
                 const balance = totalO - totalP;
@@ -1964,20 +2171,34 @@
 
         function printReport() {
             const w = window.open();
-            const totalSales = appData.orders.reduce((s, o) => s + o.amount, 0);
-            const totalPayments = appData.payments.reduce((s, p) => s + p.amount, 0);
-            w.document.write(`<h1>Reporte ${new Date().toLocaleDateString('es-ES')}</h1><p>Clientes: ${appData.clients.length} | Ventas: $${totalSales.toFixed(2)} | Pagos: $${totalPayments.toFixed(2)} | Pendiente: $${(totalSales-totalPayments).toFixed(2)}</p>`);
-            w.document.close();
-            w.print();
+            getAll(STORES.ORDERS).then(allOrders => {
+                getAll(STORES.PAYMENTS).then(allPayments => {
+                    const totalSales = allOrders.reduce((s, o) => s + o.amount, 0);
+                    const totalPayments = allPayments.reduce((s, p) => s + p.amount, 0);
+                    w.document.write(`<h1>Reporte ${new Date().toLocaleDateString('es-ES')}</h1><p>Clientes: ${document.getElementById('statClients').textContent} | Ventas: $${totalSales.toFixed(2)} | Pagos: $${totalPayments.toFixed(2)} | Pendiente: $${(totalSales-totalPayments).toFixed(2)}</p>`);
+                    w.document.close();
+                    w.print();
+                });
+            });
         }
 
-        function exportCSV() {
+        async function exportCSV() {
+            const allClients = await getAll(STORES.CLIENTS);
+            const allOrders = await getAll(STORES.ORDERS);
+            const allPayments = await getAll(STORES.PAYMENTS);
+
             let csv = 'CLIENTES\nNombre,Teléfono,Email,Domicilio\n';
-            appData.clients.forEach(c => csv += `${c.name},${c.phone},${c.email},${c.address}\n`);
+            allClients.forEach(c => csv += `${c.name},${c.phone},${c.email},${c.address}\n`);
             csv += '\nPEDIDOS\nCliente,Fecha,Monto\n';
-            appData.orders.forEach(o => { const c = appData.clients.find(x=>x.id===o.clientId); csv += `${c?.name},${o.date},$${o.amount}\n`; });
+            allOrders.forEach(o => {
+                const c = allClients.find(x => x.id === o.clientId);
+                csv += `${c?.name},${o.date},$${o.amount}\n`;
+            });
             csv += '\nPAGOS\nCliente,Monto,Fecha\n';
-            appData.payments.forEach(p => { const c = appData.clients.find(x=>x.id===p.clientId); csv += `${c?.name},$${p.amount},${p.date}\n`; });
+            allPayments.forEach(p => {
+                const c = allClients.find(x => x.id === p.clientId);
+                csv += `${c?.name},$${p.amount},${p.date}\n`;
+            });
             const blob = new Blob([csv], {type:'text/csv'});
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -1993,39 +2214,57 @@
             setTimeout(() => { alert.className = 'alert'; }, 3500);
         }
 
-        function updateClientSelects() {
-            const html = '<option value="">-- Seleccionar --</option>' + appData.clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        async function updateClientSelects() {
+            const allClients = await getAll(STORES.CLIENTS);
+            const html = '<option value="">-- Seleccionar --</option>' + allClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
             document.getElementById('orderClient').innerHTML = html;
             document.getElementById('paymentClient').innerHTML = html;
         }
 
-        function updateClientCount() {
-            document.getElementById('clientCount').textContent = `Clientes: ${appData.clients.length}`;
+        async function updateClientCount() {
+            const allClients = await getAll(STORES.CLIENTS);
+            document.getElementById('clientCount').textContent = `Clientes: ${allClients.length}`;
         }
 
-        function renderAll() {
+        async function renderAll() {
             filteredData.clients = [];
             filteredData.orders = [];
             filteredData.accounts = [];
             filteredData.payments = [];
             filteredData.summary = [];
-            renderClients(); 
-            renderOrders(); 
-            renderPayments(); 
-            renderAccountsStatus(); 
-            updateClientSelects();
+            await renderClients();
+            await renderOrders();
+            await renderPayments();
+            await renderAccountsStatus();
+            await updateClientSelects();
+            await updateClientCount();
         }
 
-        function clearAllData() {
+        async function clearAllData() {
             if (!confirm('¿Eliminar TODOS los datos? No se puede deshacer.')) return;
-            appData = { clients: [], orders: [], payments: [] };
-            localStorage.removeItem('appData');
-            renderAll();
-            alert('✅ Base de datos limpiada');
+            try {
+                await clear(STORES.CLIENTS);
+                await clear(STORES.ORDERS);
+                await clear(STORES.PAYMENTS);
+                await renderAll();
+                alert('✅ Base de datos limpiada');
+            } catch (error) {
+                console.error('Error limpiando datos:', error);
+            }
         }
 
-        function exportData() {
-            const blob = new Blob([JSON.stringify(appData, null, 2)], {type:'application/json'});
+        async function exportData() {
+            const allClients = await getAll(STORES.CLIENTS);
+            const allOrders = await getAll(STORES.ORDERS);
+            const allPayments = await getAll(STORES.PAYMENTS);
+            
+            const data = {
+                clients: allClients,
+                orders: allOrders,
+                payments: allPayments
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = 'backup.json';
@@ -2036,17 +2275,29 @@
             document.getElementById('importFile').click();
         }
 
-        function handleImport(event) {
+        async function handleImport(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = async (e) => {
                 try {
                     const imported = JSON.parse(e.target.result);
                     if (imported.clients && imported.orders && imported.payments) {
-                        appData = imported;
-                        saveData();
-                        renderAll();
+                        await clear(STORES.CLIENTS);
+                        await clear(STORES.ORDERS);
+                        await clear(STORES.PAYMENTS);
+
+                        for (const client of imported.clients) {
+                            await add(STORES.CLIENTS, client);
+                        }
+                        for (const order of imported.orders) {
+                            await add(STORES.ORDERS, order);
+                        }
+                        for (const payment of imported.payments) {
+                            await add(STORES.PAYMENTS, payment);
+                        }
+
+                        await renderAll();
                         alert('✅ Datos importados');
                     } else {
                         alert('❌ Formato inválido');
