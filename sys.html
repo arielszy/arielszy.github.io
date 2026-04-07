@@ -272,6 +272,29 @@
             background: #138496;
         }
 
+        .btn-pagination {
+            background: #f0f0f0;
+            color: #333;
+            padding: 5px 10px;
+            font-size: 0.85em;
+            border: 1px solid #ddd;
+        }
+
+        .btn-pagination:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-pagination.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .btn-pagination:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -631,6 +654,21 @@
             color: #28a745;
         }
 
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .pagination-info {
+            font-size: 0.85em;
+            color: #666;
+            margin-right: 10px;
+        }
+
         @media print {
             @page {
                 size: 80mm auto;
@@ -690,6 +728,15 @@
 
             .history-table th, .history-table td {
                 padding: 4px;
+            }
+
+            .pagination-container {
+                gap: 3px;
+            }
+
+            .btn-pagination {
+                padding: 4px 8px;
+                font-size: 0.75em;
             }
         }
     </style>
@@ -757,6 +804,7 @@
 
             <input type="text" class="search-input" id="clientsTableSearch" placeholder="🔍 Buscar cliente...">
             <div id="clientsList"></div>
+            <div class="pagination-container" id="clientsPagination"></div>
         </div>
 
         <!-- PEDIDOS -->
@@ -816,6 +864,7 @@
             </div>
 
             <div id="ordersList"></div>
+            <div class="pagination-container" id="ordersPagination"></div>
         </div>
 
         <!-- PAGOS -->
@@ -868,9 +917,11 @@
             <h3 class="section-title" style="margin-top: 15px;">Cuentas Corrientes</h3>
             <input type="text" class="search-input" id="accountsTableSearch" placeholder="🔍 Buscar cliente...">
             <div id="accountsList"></div>
+            <div class="pagination-container" id="accountsPagination"></div>
 
             <h3 class="section-title" style="margin-top: 15px;">Historial de Pagos</h3>
             <div id="paymentsList"></div>
+            <div class="pagination-container" id="paymentsPagination"></div>
         </div>
 
         <!-- REPORTES -->
@@ -913,6 +964,7 @@
             </div>
             <input type="text" class="search-input" id="reportTableSearch" placeholder="🔍 Buscar cliente...">
             <div id="summaryList"></div>
+            <div class="pagination-container" id="summaryPagination"></div>
 
             <div class="button-group" style="margin-top: 15px;">
                 <button class="btn-primary" onclick="printReport()">🖨️ Imprimir</button>
@@ -1020,6 +1072,23 @@
         };
         let editingClientId = null, editingOrderId = null;
         let reportFilter = 'todos';
+
+        // PAGINACIÓN
+        const ITEMS_PER_PAGE = 10;
+        let currentPage = {
+            clients: 1,
+            orders: 1,
+            accounts: 1,
+            payments: 1,
+            summary: 1
+        };
+        let filteredData = {
+            clients: [],
+            orders: [],
+            accounts: [],
+            payments: [],
+            summary: []
+        };
 
         function initApp() {
             loadData();
@@ -1148,9 +1217,18 @@
         }
 
         function setupSearchListeners() {
-            document.getElementById('clientsTableSearch').addEventListener('keyup', () => filterClientsTable());
-            document.getElementById('accountsTableSearch').addEventListener('keyup', () => filterAccountsTable());
-            document.getElementById('reportTableSearch').addEventListener('keyup', () => filterReportTable());
+            document.getElementById('clientsTableSearch').addEventListener('keyup', () => {
+                currentPage.clients = 1;
+                filterClientsTable();
+            });
+            document.getElementById('accountsTableSearch').addEventListener('keyup', () => {
+                currentPage.accounts = 1;
+                filterAccountsTable();
+            });
+            document.getElementById('reportTableSearch').addEventListener('keyup', () => {
+                currentPage.summary = 1;
+                filterReportTable();
+            });
             document.getElementById('orderClientSearch').addEventListener('keyup', () => filterOrderClientSelect());
             document.getElementById('paymentClientSearch').addEventListener('keyup', () => filterPaymentClientSelect());
 
@@ -1161,35 +1239,69 @@
             document.getElementById('footerText').addEventListener('input', updatePreview);
         }
 
+        function renderPagination(containerId, currentPage, totalPages, pageCallback) {
+            const container = document.getElementById(containerId);
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = `<div class="pagination-info">Página ${currentPage} de ${totalPages}</div>`;
+            
+            html += `<button class="btn-pagination" onclick="${pageCallback}(1)" ${currentPage === 1 ? 'disabled' : ''}>« Primera</button>`;
+            html += `<button class="btn-pagination" onclick="${pageCallback}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹ Anterior</button>`;
+            
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                html += `<button class="btn-pagination ${i === currentPage ? 'active' : ''}" onclick="${pageCallback}(${i})">${i}</button>`;
+            }
+            
+            html += `<button class="btn-pagination" onclick="${pageCallback}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente ›</button>`;
+            html += `<button class="btn-pagination" onclick="${pageCallback}(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>Última »</button>`;
+            
+            container.innerHTML = html;
+        }
+
         function filterClientsTable() {
             const query = document.getElementById('clientsTableSearch').value.toLowerCase();
-            const rows = document.querySelectorAll('#clientsList tbody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(query) ? '' : 'none';
-            });
+            filteredData.clients = appData.clients.filter(c => 
+                c.name.toLowerCase().includes(query) ||
+                (c.phone && c.phone.toLowerCase().includes(query)) ||
+                (c.address && c.address.toLowerCase().includes(query))
+            );
+            renderClients();
         }
 
         function filterAccountsTable() {
             const query = document.getElementById('accountsTableSearch').value.toLowerCase();
-            const rows = document.querySelectorAll('#accountsList tbody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(query) ? '' : 'none';
-            });
+            filteredData.accounts = appData.clients.filter(c =>
+                c.name.toLowerCase().includes(query)
+            );
+            renderAccountsStatus();
         }
 
         function filterReportTable() {
             const query = document.getElementById('reportTableSearch').value.toLowerCase();
-            const rows = document.querySelectorAll('#summaryList tbody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(query) ? '' : 'none';
+            filteredData.summary = appData.clients.filter(client => {
+                const orders = appData.orders.filter(o => o.clientId === client.id);
+                const payments = appData.payments.filter(p => p.clientId === client.id);
+                const totalO = orders.reduce((s, o) => s + o.amount, 0);
+                const totalP = payments.reduce((s, p) => s + p.amount, 0);
+                const balance = totalO - totalP;
+
+                let showRow = false;
+                if (reportFilter === 'todos') showRow = true;
+                else if (reportFilter === 'deudores' && balance > 0) showRow = true;
+                else if (reportFilter === 'pagados' && balance === 0) showRow = true;
+                else if (reportFilter === 'favor' && balance < 0) showRow = true;
+
+                return showRow && client.name.toLowerCase().includes(query);
             });
+            updateReports();
         }
 
         function filterReports(type) {
             reportFilter = type;
+            currentPage.summary = 1;
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             updateReports();
@@ -1274,7 +1386,7 @@
                     address: document.getElementById('clientAddress').value.trim(),
                     createdAt: new Date().toISOString()
                 });
-                saveData(); clearClientForm(); renderClients(); updateClientSelects();
+                saveData(); clearClientForm(); currentPage.clients = 1; renderClients(); updateClientSelects();
                 showAlert('alertClientes', '✅ Cliente agregado', 'success');
             }
         }
@@ -1320,6 +1432,31 @@
             document.getElementById('clientAddress').value = '';
         }
 
+        function goToClientsPage(page) {
+            currentPage.clients = page;
+            renderClients();
+        }
+
+        function renderClients() {
+            const container = document.getElementById('clientsList');
+            const toDisplay = filteredData.clients.length > 0 ? filteredData.clients : appData.clients;
+            
+            if (!toDisplay.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
+            
+            const totalPages = Math.ceil(toDisplay.length / ITEMS_PER_PAGE);
+            const start = (currentPage.clients - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageData = toDisplay.slice(start, end);
+
+            let html = '<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Domicilio</th><th>Acciones</th></tr></thead><tbody>';
+            pageData.forEach(client => {
+                html += `<tr><td><strong>${client.name}</strong></td><td>${client.phone || '-'}</td><td>${client.address || '-'}</td><td style="font-size:0.85em;"><button class="btn-info" style="padding:4px 8px;font-size:0.8em;" onclick="viewClientHistory(${client.id})">📜 Historial</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editClient(${client.id})">Editar</button> <button class="btn-danger" onclick="deleteClient(${client.id})">X</button></td></tr>`;
+            });
+            container.innerHTML = html + '</tbody></table>';
+            
+            renderPagination('clientsPagination', currentPage.clients, totalPages, 'goToClientsPage');
+        }
+
         function viewClientHistory(id) {
             const client = appData.clients.find(c => c.id === id);
             const orders = appData.orders.filter(o => o.clientId === id);
@@ -1342,7 +1479,6 @@
                 statusColor = '#28a745';
             }
 
-            // Combinar y ordenar por fecha
             let allItems = [];
             orders.forEach(o => allItems.push({...o, type: 'order', date: new Date(o.date)}));
             payments.forEach(p => allItems.push({...p, type: 'payment', date: new Date(p.date)}));
@@ -1412,52 +1548,6 @@
             document.getElementById('historyModal').classList.add('active');
         }
 
-        function renderClients() {
-            const container = document.getElementById('clientsList');
-            if (!appData.clients.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
-            let html = '<table><thead><tr><th>Nombre</th><th>Teléfono</th><th>Domicilio</th><th>Acciones</th></tr></thead><tbody>';
-            appData.clients.forEach(client => {
-                html += `<tr><td><strong>${client.name}</strong></td><td>${client.phone || '-'}</td><td>${client.address || '-'}</td><td style="font-size:0.85em;"><button class="btn-info" style="padding:4px 8px;font-size:0.8em;" onclick="viewClientHistory(${client.id})">📜 Historial</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editClient(${client.id})">Editar</button> <button class="btn-danger" onclick="deleteClient(${client.id})">X</button></td></tr>`;
-            });
-            container.innerHTML = html + '</tbody></table>';
-        }
-
-        function viewClient(id) {
-            const client = appData.clients.find(c => c.id === id);
-            const orders = appData.orders.filter(o => o.clientId === id);
-            const payments = appData.payments.filter(p => p.clientId === id);
-            const totalO = orders.reduce((s, o) => s + o.amount, 0);
-            const totalP = payments.reduce((s, p) => s + p.amount, 0);
-            const balance = totalO - totalP;
-            
-            let statusText = '';
-            let statusColor = '';
-            if (balance > 0) {
-                statusText = '⚠️ Deuda: $' + balance.toFixed(2);
-                statusColor = '#ff6b6b';
-            } else if (balance < 0) {
-                statusText = '💰 A Favor: $' + Math.abs(balance).toFixed(2);
-                statusColor = '#004085';
-            } else {
-                statusText = '✅ Al día';
-                statusColor = '#28a745';
-            }
-            
-            document.getElementById('modalBody').innerHTML = `
-                <div style="font-size:1.1em;font-weight:bold;margin-bottom:10px;">${client.name}</div>
-                <p><strong>Teléfono:</strong> ${client.phone || '-'}</p>
-                <p><strong>Email:</strong> ${client.email || '-'}</p>
-                <p><strong>Documento:</strong> ${client.doc || '-'}</p>
-                <p><strong>Domicilio:</strong> ${client.address || '-'}</p>
-                <div class="card" style="margin-top:10px;">
-                    <p><strong>Deudor:</strong> $${totalO.toFixed(2)}</p>
-                    <p><strong>Pagado:</strong> $${totalP.toFixed(2)}</p>
-                    <p><strong>Saldo:</strong> <span style="color:${statusColor};font-weight:bold;">${statusText}</span></p>
-                </div>
-            `;
-            document.getElementById('detailsModal').classList.add('active');
-        }
-
         // PEDIDOS
         function saveOrder() {
             const clientId = document.getElementById('orderClient').value;
@@ -1485,7 +1575,7 @@
                     status: document.getElementById('orderStatus').value, delivery: document.getElementById('orderDelivery').value,
                     createdAt: new Date().toISOString()
                 });
-                saveData(); clearOrderForm(); renderOrders();
+                saveData(); clearOrderForm(); currentPage.orders = 1; renderOrders();
                 showAlert('alertPedidos', '✅ Pedido registrado', 'success');
             }
         }
@@ -1534,6 +1624,11 @@
             document.getElementById('orderStatus').value = 'pendiente';
             document.getElementById('orderDelivery').value = '';
             setCurrentDate();
+        }
+
+        function goToOrdersPage(page) {
+            currentPage.orders = page;
+            renderOrders();
         }
 
         function printOrderTicket(orderId) {
@@ -1607,6 +1702,66 @@
             setTimeout(() => printWindow.print(), 100);
         }
 
+        function renderOrders() {
+            const container = document.getElementById('ordersList');
+            if (!appData.orders.length) { container.innerHTML = '<div class="empty-state">Sin pedidos</div>'; return; }
+            
+            const totalPages = Math.ceil(appData.orders.length / ITEMS_PER_PAGE);
+            const start = (currentPage.orders - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageData = appData.orders.slice(start, end);
+
+            let html = '<table><thead><tr><th>Cliente</th><th>Fecha</th><th>Monto</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+            pageData.forEach(order => {
+                const client = appData.clients.find(c => c.id === order.clientId);
+                const colors = {'pendiente':'#fff3cd','confirmado':'#d1ecf1','entregado':'#d4edda'};
+                html += `<tr><td>${client?.name || '-'}</td><td>${order.date}</td><td>$${order.amount.toFixed(2)}</td><td><span class="status-badge" style="background:${colors[order.status]};color:#333;">${order.status}</span></td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="printOrderTicket(${order.id})">🖨️</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editOrder(${order.id})">Editar</button> <button class="btn-danger" onclick="deleteOrder(${order.id})">X</button></td></tr>`;
+            });
+            container.innerHTML = html + '</tbody></table>';
+            
+            renderPagination('ordersPagination', currentPage.orders, totalPages, 'goToOrdersPage');
+        }
+
+        // PAGOS
+        function addPayment() {
+            const clientId = document.getElementById('paymentClient').value;
+            const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+            if (!clientId || amount <= 0) { showAlert('alertPagos', 'Complete campos', 'error'); return; }
+            appData.payments.push({
+                id: Date.now(), clientId: parseInt(clientId), amount, date: document.getElementById('paymentDate').value,
+                method: document.getElementById('paymentMethod').value, ref: document.getElementById('paymentRef').value.trim(),
+                createdAt: new Date().toISOString()
+            });
+            saveData(); clearPaymentForm(); currentPage.payments = 1; renderPayments(); renderAccountsStatus();
+            showAlert('alertPagos', '✅ Pago registrado', 'success');
+        }
+
+        function deletePayment(id) {
+            if (!confirm('¿Eliminar?')) return;
+            appData.payments = appData.payments.filter(p => p.id !== id);
+            saveData(); renderPayments(); renderAccountsStatus();
+            showAlert('alertPagos', 'Pago eliminado', 'success');
+        }
+
+        function clearPaymentForm() {
+            document.getElementById('paymentClient').value = '';
+            document.getElementById('paymentClientSearch').value = '';
+            document.getElementById('paymentAmount').value = '';
+            document.getElementById('paymentMethod').value = 'efectivo';
+            document.getElementById('paymentRef').value = '';
+            setCurrentDate();
+        }
+
+        function goToAccountsPage(page) {
+            currentPage.accounts = page;
+            renderAccountsStatus();
+        }
+
+        function goToPaymentsPage(page) {
+            currentPage.payments = page;
+            renderPayments();
+        }
+
         function printPaymentTicket(paymentId) {
             const payment = appData.payments.find(p => p.id === paymentId);
             const client = appData.clients.find(c => c.id === payment.clientId);
@@ -1673,64 +1828,38 @@
             setTimeout(() => printWindow.print(), 100);
         }
 
-        function renderOrders() {
-            const container = document.getElementById('ordersList');
-            if (!appData.orders.length) { container.innerHTML = '<div class="empty-state">Sin pedidos</div>'; return; }
-            let html = '<table><thead><tr><th>Cliente</th><th>Fecha</th><th>Monto</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
-            appData.orders.forEach(order => {
-                const client = appData.clients.find(c => c.id === order.clientId);
-                const colors = {'pendiente':'#fff3cd','confirmado':'#d1ecf1','entregado':'#d4edda'};
-                html += `<tr><td>${client?.name || '-'}</td><td>${order.date}</td><td>$${order.amount.toFixed(2)}</td><td><span class="status-badge" style="background:${colors[order.status]};color:#333;">${order.status}</span></td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="printOrderTicket(${order.id})">🖨️</button> <button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="editOrder(${order.id})">Editar</button> <button class="btn-danger" onclick="deleteOrder(${order.id})">X</button></td></tr>`;
-            });
-            container.innerHTML = html + '</tbody></table>';
-        }
-
-        // PAGOS
-        function addPayment() {
-            const clientId = document.getElementById('paymentClient').value;
-            const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
-            if (!clientId || amount <= 0) { showAlert('alertPagos', 'Complete campos', 'error'); return; }
-            appData.payments.push({
-                id: Date.now(), clientId: parseInt(clientId), amount, date: document.getElementById('paymentDate').value,
-                method: document.getElementById('paymentMethod').value, ref: document.getElementById('paymentRef').value.trim(),
-                createdAt: new Date().toISOString()
-            });
-            saveData(); clearPaymentForm(); renderPayments(); renderAccountsStatus();
-            showAlert('alertPagos', '✅ Pago registrado', 'success');
-        }
-
-        function deletePayment(id) {
-            if (!confirm('¿Eliminar?')) return;
-            appData.payments = appData.payments.filter(p => p.id !== id);
-            saveData(); renderPayments(); renderAccountsStatus();
-            showAlert('alertPagos', 'Pago eliminado', 'success');
-        }
-
-        function clearPaymentForm() {
-            document.getElementById('paymentClient').value = '';
-            document.getElementById('paymentClientSearch').value = '';
-            document.getElementById('paymentAmount').value = '';
-            document.getElementById('paymentMethod').value = 'efectivo';
-            document.getElementById('paymentRef').value = '';
-            setCurrentDate();
-        }
-
         function renderPayments() {
             const container = document.getElementById('paymentsList');
             if (!appData.payments.length) { container.innerHTML = '<div class="empty-state">Sin pagos</div>'; return; }
+            
+            const totalPages = Math.ceil(appData.payments.length / ITEMS_PER_PAGE);
+            const start = (currentPage.payments - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageData = appData.payments.slice(start, end);
+
             let html = '<table><thead><tr><th>Cliente</th><th>Monto</th><th>Fecha</th><th>Método</th><th>Acciones</th></tr></thead><tbody>';
-            appData.payments.forEach(payment => {
+            pageData.forEach(payment => {
                 const client = appData.clients.find(c => c.id === payment.clientId);
                 html += `<tr><td>${client?.name || '-'}</td><td>$${payment.amount.toFixed(2)}</td><td>${payment.date}</td><td>${payment.method}</td><td style="font-size:0.85em;"><button class="btn-secondary" style="padding:4px 8px;font-size:0.8em;" onclick="printPaymentTicket(${payment.id})">🖨️</button> <button class="btn-danger" onclick="deletePayment(${payment.id})">X</button></td></tr>`;
             });
             container.innerHTML = html + '</tbody></table>';
+            
+            renderPagination('paymentsPagination', currentPage.payments, totalPages, 'goToPaymentsPage');
         }
 
         function renderAccountsStatus() {
             const container = document.getElementById('accountsList');
-            if (!appData.clients.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
+            const toDisplay = filteredData.accounts.length > 0 ? filteredData.accounts : appData.clients;
+            
+            if (!toDisplay.length) { container.innerHTML = '<div class="empty-state">Sin clientes</div>'; return; }
+            
+            const totalPages = Math.ceil(toDisplay.length / ITEMS_PER_PAGE);
+            const start = (currentPage.accounts - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageData = toDisplay.slice(start, end);
+
             let html = '<table><thead><tr><th>Cliente</th><th>Deudor</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>';
-            appData.clients.forEach(client => {
+            pageData.forEach(client => {
                 const orders = appData.orders.filter(o => o.clientId === client.id);
                 const payments = appData.payments.filter(p => p.clientId === client.id);
                 const totalO = orders.reduce((s, o) => s + o.amount, 0);
@@ -1753,6 +1882,8 @@
                 html += `<tr><td>${client.name}</td><td>$${totalO.toFixed(2)}</td><td>$${totalP.toFixed(2)}</td><td style="color:${balance > 0 ? '#ff6b6b' : balance < 0 ? '#004085' : '#28a745'};font-weight:bold;">$${Math.abs(balance).toFixed(2)}</td><td><span class="status-badge" style="background:${statusColor};color:#333;">${statusBadge}</span></td></tr>`;
             });
             container.innerHTML = html + '</tbody></table>';
+            
+            renderPagination('accountsPagination', currentPage.accounts, totalPages, 'goToAccountsPage');
         }
 
         // REPORTES
@@ -1778,8 +1909,25 @@
             document.getElementById('statBalance').textContent = '$' + balance.toFixed(0);
             document.getElementById('statDebtors').textContent = debtors + '+' + favor;
 
+            renderSummary();
+        }
+
+        function goToSummaryPage(page) {
+            currentPage.summary = page;
+            renderSummary();
+        }
+
+        function renderSummary() {
+            const toDisplay = filteredData.summary.length > 0 ? filteredData.summary : appData.clients;
+            const container = document.getElementById('summaryList');
+            
+            const totalPages = Math.ceil(toDisplay.length / ITEMS_PER_PAGE);
+            const start = (currentPage.summary - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageData = toDisplay.slice(start, end);
+
             let summaryHtml = '<table><thead><tr><th>Cliente</th><th>Deudor</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>';
-            appData.clients.forEach(client => {
+            pageData.forEach(client => {
                 const orders = appData.orders.filter(o => o.clientId === client.id);
                 const payments = appData.payments.filter(p => p.clientId === client.id);
                 const totalO = orders.reduce((s, o) => s + o.amount, 0);
@@ -1809,7 +1957,9 @@
                     summaryHtml += `<tr><td>${client.name}</td><td>$${totalO.toFixed(2)}</td><td>$${totalP.toFixed(2)}</td><td style="color:${balance > 0 ? '#ff6b6b' : balance < 0 ? '#004085' : '#28a745'};font-weight:bold;">$${Math.abs(balance).toFixed(2)}</td><td><span class="status-badge" style="background:${statusColor};color:#333;">${statusBadge}</span></td></tr>`;
                 }
             });
-            document.getElementById('summaryList').innerHTML = summaryHtml + '</tbody></table>';
+            container.innerHTML = summaryHtml + '</tbody></table>';
+            
+            renderPagination('summaryPagination', currentPage.summary, totalPages, 'goToSummaryPage');
         }
 
         function printReport() {
@@ -1854,7 +2004,16 @@
         }
 
         function renderAll() {
-            renderClients(); renderOrders(); renderPayments(); renderAccountsStatus(); updateClientSelects();
+            filteredData.clients = [];
+            filteredData.orders = [];
+            filteredData.accounts = [];
+            filteredData.payments = [];
+            filteredData.summary = [];
+            renderClients(); 
+            renderOrders(); 
+            renderPayments(); 
+            renderAccountsStatus(); 
+            updateClientSelects();
         }
 
         function clearAllData() {
