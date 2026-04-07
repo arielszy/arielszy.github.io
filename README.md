@@ -35,7 +35,7 @@
 - ✅ Formato compacto sin saltos de línea
 
 ### **💾 Almacenamiento:**
-- ✅ localStorage (offline)
+- ✅ IndexedDB (offline)
 - ✅ Exportar/Importar datos JSON
 - ✅ Respaldos completos
 
