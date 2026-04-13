@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pedidos - PWA</title>
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Sistema de Gestión de Pedidos con sincronización en tiempo real">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='100' font-weight='bold' fill='white' font-family='Arial'>📦</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 { font-size: 1.8em; margin-bottom: 3px; }
+        header p { font-size: 0.85em; opacity: 0.9; }
+        .status-bar {
+            background: rgba(0, 0, 0, 0.08);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .sync-status.online { background: #d4edda; color: #155724; }
+        .sync-status.offline { background: #f8d7da; color: #721c24; }
+        .sync-status.syncing { background: #fff3cd; color: #856404; }
+        .sync-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .sync-indicator.online { background: #28a745; }
+        .sync-indicator.offline { background: #dc3545; }
+        .sync-indicator.syncing { background: #ffc107; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .tabs-container {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+        }
+        .tab-button {
+            flex: 1;
+            min-width: 100px;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-button:hover { background: #f0f0f0; color: #667eea; }
+        .tab-button.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
+        .section-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-bottom: 12px;
+        }
+        .search-input:focus { outline: none; border-color: #667eea; }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9em; }
+        .filter-group select, .filter-group input {
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        .filter-group select:focus, .filter-group input:focus { outline: none; border-color: #667eea; }
+        .form-group { margin-bottom: 12px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        label { display: block; margin-bottom: 4px; color: #333; font-weight: 500; font-size: 0.9em; }
+        .required::after { content: " *"; color: #ff6b6b; }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1); }
+        textarea { resize: vertical; min-height: 60px; }
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+            min-width: 120px;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3); }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            flex: 1;
+            min-width: 80px;
+        }
+        .btn-secondary:hover { background: #d0d0d0; }
+        .btn-danger { background: #ff6b6b; color: white; padding: 5px 10px; font-size: 0.8em; }
+        .btn-danger:hover { background: #ff5252; }
+        .btn-settings { background: #6c757d; color: white; padding: 8px 12px; font-size: 0.85em; }
+        .btn-settings:hover { background: #5a6268; }
+        .btn-info { background: #17a2b8; color: white; padding: 5px 10px; font-size: 0.8em; }
+        .btn-info:hover { background: #138496; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.85em;
+        }
+        th {
+            background: #f0f0f0;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+            font-size: 0.8em;
+        }
+        td { padding: 8px; border-bottom: 1px solid #e0e0e0; }
+        tr:hover { background: #f9f9f9; }
+        .card {
+            background: #f8f9fa;
+            border-left: 3px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .card.editing { background: #fffacd; border-left-color: #ffc107; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card { background: #f0f0f0; padding: 12px; border-radius: 6px; text-align: center; }
+        .stat-title { font-size: 0.85em; color: #666; margin-bottom: 5px; }
+        .stat-value { font-size: 1.5em; color: #667eea; font-weight: bold; }
+        .alert {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 0.9em;
+        }
+        .alert.show { display: block; }
+        .alert.success { background: #d4edda; color: #155724; border-left: 3px solid #28a745; }
+        .alert.error { background: #f8d7da; color: #721c24; border-left: 3px solid #f5c6cb; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 900px;
+            width: 90%;
+            position: relative;
+            max-height: 85vh;
+            overflow-y: auto;
+            margin: auto;
+        }
+        .close-modal {
+            background: #e0e0e0;
+            color: #333;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            font-size: 1em;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: none;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .status-pendiente { background: #fff3cd; color: #856404; }
+        .status-preparado { background: #d1ecf1; color: #0c5460; }
+        .status-facturado { background: #cfe2ff; color: #084298; }
+        .status-entregado { background: #d4edda; color: #155724; }
+        .empty-state { text-align: center; padding: 30px 15px; color: #999; font-size: 0.9em; }
+        .select-search { position: relative; }
+        .select-search-input { width: 100%; padding: 8px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 0.9em; }
+        .select-search-input:focus { outline: none; border-color: #667eea; }
+        .select-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 100;
+        }
+        .select-options.show { display: block; }
+        .option-item { padding: 8px 12px; border-bottom: 1px solid #e0e0e0; cursor: pointer; }
+        .option-item:hover { background: #f0f0f0; }
+        .option-name { font-weight: 600; color: #333; }
+        .option-detail { font-size: 0.85em; color: #666; }
+        .client-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .client-header h2 { font-size: 1.3em; margin-bottom: 8px; }
+        .client-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 12px;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .client-info-item { background: rgba(255,255,255,0.15); padding: 8px; border-radius: 4px; }
+        .client-info-label { font-weight: 600; margin-bottom: 2px; font-size: 0.8em; }
+        .client-balance { margin-top: 8px; font-size: 1em; }
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
+        .history-table thead { background: #f0f0f0; }
+        .history-table th { padding: 6px; text-align: left; font-weight: 600; border-bottom: 2px solid #e0e0e0; font-size: 0.8em; }
+        .history-table td { padding: 6px; border-bottom: 1px solid #e0e0e0; }
+        .history-table tr:hover { background: #f9f9f9; }
+        .history-row.order { background: #fffbf0; }
+        .history-row.payment { background: #f0fbf7; }
+        .history-type { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 0.75em; font-weight: 600; }
+        .history-type.payment { background: #d4edda; color: #155724; }
+        .history-type.order { background: #fff3cd; color: #856404; }
+        .history-amount { font-weight: bold; text-align: right; }
+        .history-amount.order { color: #ffc107; }
+        .history-amount.payment { color: #28a745; }
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .pagination-info { font-size: 0.85em; color: #666; margin-right: 10px; }
+        .table-wrapper { overflow-x: auto; }
+        .settings-tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+            gap: 0;
+        }
+        .settings-tab-btn {
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .settings-tab-btn:hover { color: #667eea; }
+        .settings-tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
+        .settings-tab-content { display: none; }
+        .settings-tab-content.active { display: block; }
+        .install-banner {
+            background: #cfe2ff;
+            border: 2px solid #084298;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .install-banner.show { display: block; }
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; }
+            header h1 { font-size: 1.4em; }
+            .tab-button { min-width: 75px; padding: 8px 10px; font-size: 0.8em; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            table { font-size: 0.75em; }
+            td, th { padding: 5px; }
+            .client-info { grid-template-columns: 1fr 1fr; }
+            .filter-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 Gestión de Pedidos</h1>
+            <p>PWA con sincronización en tiempo real</p>
+        </header>
+
+        <div class="status-bar">
+            <span id="syncStatus" class="sync-status online">
+                <span class="sync-indicator online"></span>
+                En línea
+            </span>
+            <span id="clientCount">Clientes: 0</span>
+            <button class="btn-secondary" style="padding: 5px 12px; font-size: 0.8em;" onclick="exportData()">💾 Exportar</button>
+            <button class="btn-secondary" style="padding: 5px 12px; font-size: 0.8em;" onclick="importData()">📥 Importar</button>
+            <button class="btn-settings" onclick="openSettings()">⚙️ Configuración</button>
+        </div>
+
+        <div id="installBanner" class="install-banner">
+            <strong>📲 Instalar Aplicación</strong>
+            <p>Instala esta app en tu dispositivo para acceder sin conexión</p>
+            <button class="btn-primary" style="margin-top: 10px;" onclick="installApp()">Instalar</button>
+            <button class="btn-secondary" style="margin-top: 10px;" onclick="closeInstallBanner()">No ahora</button>
+        </div>
+
+        <div class="tabs-container">
+            <button class="tab-button active" onclick="switchTab('clientes')">👥 Clientes</button>
+            <button class="tab-button" onclick="switchTab('pedidos')">📋 Pedidos</button>
+            <button class="tab-button" onclick="switchTab('pagos')">💳 Pagos</button>
+            <button class="tab-button" onclick="switchTab('reportes')">📊 Reportes</button>
+        </div>
+
+        <!-- CLIENTES -->
+        <div id="clientes" class="tab-content active">
+            <h2 class="section-title">Clientes</h2>
+            <div id="alertClientes" class="alert"></div>
+
+            <div class="card" id="clientFormCard">
+                <h3 id="clientFormTitle" style="font-size: 1em; margin-bottom: 12px;">Nuevo Cliente</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required">Nombre</label>
+                        <input type="text" id="clientName" placeholder="Nombre">
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" id="clientPhone" placeholder="Teléfono">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="clientEmail" placeholder="Email">
+                    </div>
+                    <div class="form-group">
+                        <label>Documento</label>
+                        <input type="text" id="clientDoc" placeholder="RUC/DNI">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Domicilio</label>
+                    <input type="text" id="clientAddress" placeholder="Calle y número">
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" id="clientSubmitBtn" onclick="saveClient()">➕ Agregar</button>
+                    <button class="btn-secondary" onclick="clearClientForm()">Limpiar</button>
+                    <button class="btn-secondary" id="clientCancelBtn" onclick="cancelEditClient()" style="display: none;">❌ Cancelar</button>
+                </div>
+            </div>
+
+            <input type="text" class="search-input" id="clientsTableSearch" placeholder="🔍 Buscar cliente...">
+            <div id="clientsList"></div>
+            <div class="pagination-container" id="clientsPagination"></div>
+        </div>
+
+        <!-- PEDIDOS -->
+        <div id="pedidos" class="tab-content">
+            <h2 class="section-title">Pedidos</h2>
+            <div id="alertPedidos" class="alert"></div>
+
+            <div class="card" id="orderFormCard">
+                <h3 id="orderFormTitle" style="font-size: 1em; margin-bottom: 12px;">Nuevo Pedido</h3>
+                <div class="form-group">
+                    <label class="required">Cliente</label>
+                    <div class="select-search">
+                        <input type="text" class="select-search-input" id="orderClientSearch" placeholder="🔍 Buscar cliente...">
+                        <div class="select-options" id="orderClientOptions"></div>
+                        <select id="orderClient" style="display:none;">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="orderDate">
+                    </div>
+                    <div class="form-group">
+                        <label id="amountLabel">Monto</label>
+                        <input type="number" id="orderAmount" min="0" step="0.01">
+                        <small id="amountHint" style="color: #999; font-size: 0.8em;"></small>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="required">Descripción</label>
+                    <textarea id="orderDescription" placeholder="Descripción del pedido"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Comentarios</label>
+                    <textarea id="orderComments" placeholder="Comentarios adicionales del pedido" style="min-height: 40px;"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entrega</label>
+                        <input type="date" id="orderDelivery">
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="orderStatus" onchange="updateAmountRequirement()">
+                            <option>pendiente</option>
+                            <option>preparado</option>
+                            <option>facturado</option>
+                            <option>entregado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" id="orderSubmitBtn" onclick="saveOrder()">➕ Registrar</button>
+                    <button class="btn-secondary" onclick="clearOrderForm()">Limpiar</button>
+                    <button class="btn-secondary" id="orderCancelBtn" onclick="cancelEditOrder()" style="display: none;">❌ Cancelar</button>
+                </div>
+            </div>
+
+            <h3 class="section-title" style="margin-top: 15px;">Filtros</h3>
+            <div class="filter-section">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Filtrar por Cliente</label>
+                        <select id="filterClient" onchange="applyOrderFilters()">
+                            <option value="">Todos los clientes</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Filtrar por Estado</label>
+                        <select id="filterStatus" onchange="applyOrderFilters()">
+                            <option value="">Todos los estados</option>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="preparado">Preparado</option>
+                            <option value="facturado">Facturado</option>
+                            <option value="entregado">Entregado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Desde</label>
+                        <input type="date" id="filterDateFrom" onchange="applyOrderFilters()">
+                    </div>
+                    <div class="filter-group">
+                        <label>Hasta</label>
+                        <input type="date" id="filterDateTo" onchange="applyOrderFilters()">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="clearOrderFilters()">🔄 Limpiar Filtros</button>
+                </div>
+            </div>
+
+            <div id="ordersList"></div>
+            <div class="pagination-container" id="ordersPagination"></div>
+        </div>
+
+        <!-- PAGOS -->
+        <div id="pagos" class="tab-content">
+            <h2 class="section-title">Pagos</h2>
+            <div id="alertPagos" class="alert"></div>
+
+            <div class="card">
+                <h3 style="font-size: 1em; margin-bottom: 12px;">Registrar Pago</h3>
+                <div class="form-group">
+                    <label class="required">Cliente</label>
+                    <div class="select-search">
+                        <input type="text" class="select-search-input" id="paymentClientSearch" placeholder="🔍 Buscar cliente...">
+                        <div class="select-options" id="paymentClientOptions"></div>
+                        <select id="paymentClient" style="display:none;">
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required">Monto</label>
+                        <input type="number" id="paymentAmount" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="paymentDate">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Método</label>
+                        <select id="paymentMethod">
+                            <option>efectivo</option>
+                            <option>transferencia</option>
+                            <option>tarjeta</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Referencia</label>
+                        <input type="text" id="paymentRef" placeholder="Referencia">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="addPayment()">💰 Registrar</button>
+                    <button class="btn-secondary" onclick="clearPaymentForm()">Limpiar</button>
+                </div>
+            </div>
+
+            <h3 class="section-title" style="margin-top: 15px;">Cuentas Corrientes</h3>
+            <input type="text" class="search-input" id="accountsTableSearch" placeholder="🔍 Buscar cliente...">
+            <div id="accountsList"></div>
+            <div class="pagination-container" id="accountsPagination"></div>
+
+            <h3 class="section-title" style="margin-top: 15px;">Historial de Pagos</h3>
+            <div class="filter-section">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Cliente</label>
+                        <select id="filterPaymentClient" onchange="applyPaymentFilters()">
+                            <option value="">Todos los clientes</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Desde</label>
+                        <input type="date" id="filterPaymentDateFrom" onchange="applyPaymentFilters()">
+                    </div>
+                    <div class="filter-group">
+                        <label>Hasta</label>
+                        <input type="date" id="filterPaymentDateTo" onchange="applyPaymentFilters()">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="clearPaymentFilters()">🔄 Limpiar Filtros</button>
+                </div>
+            </div>
+            <div id="paymentsList"></div>
+            <div class="pagination-container" id="paymentsPagination"></div>
+        </div>
+
+        <!-- REPORTES -->
+        <div id="reportes" class="tab-content">
+            <h2 class="section-title">Reportes</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Clientes</div>
+                    <div class="stat-value" id="statClients">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Pedidos</div>
+                    <div class="stat-value" id="statOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Ventas</div>
+                    <div class="stat-value" id="statSales">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Pagos</div>
+                    <div class="stat-value" id="statPayments">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Pendiente</div>
+                    <div class="stat-value" id="statBalance">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Con Deuda</div>
+                    <div class="stat-value" id="statDebtors">0</div>
+                </div>
+            </div>
+
+            <h3 class="section-title">Resumen por Cliente</h3>
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterReports('todos')">📊 Todos</button>
+                <button class="filter-btn" onclick="filterReports('deudores')">⚠️ Deudores</button>
+                <button class="filter-btn" onclick="filterReports('pagados')">✅ Pagados</button>
+                <button class="filter-btn" onclick="filterReports('favor')">💰 A Favor</button>
+            </div>
+            <input type="text" class="search-input" id="reportTableSearch" placeholder="🔍 Buscar cliente...">
+            <div id="summaryList"></div>
+            <div class="pagination-container" id="summaryPagination"></div>
+
+            <div class="button-group" style="margin-top: 15px;">
+                <button class="btn-primary" onclick="printReport()">🖨️ Imprimir</button>
+                <button class="btn-primary" onclick="exportCSV()">📊 CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL HISTORIAL -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeHistory()">&times;</button>
+            <div id="historyBody"></div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIGURACIÓN -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeSettings()">&times;</button>
+            <h2 style="margin-bottom: 15px;">⚙️ Configuración</h2>
+
+            <div class="settings-tabs">
+                <button class="settings-tab-btn active" onclick="switchSettingsTab('database')">💾 Base de Datos</button>
+                <button class="settings-tab-btn" onclick="switchSettingsTab('sync')">🔄 Sincronización</button>
+            </div>
+
+            <!-- TAB DATABASE -->
+            <div id="database" class="settings-tab-content active">
+                <h3 style="margin-bottom: 15px;">Gestión de Base de Datos</h3>
+
+                <div class="card" style="background: #fff3cd; border-left-color: #ffc107;">
+                    <h4 style="margin-bottom: 10px;">⚠️ Eliminar Registros Antiguos</h4>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Eliminar registros de hace...</label>
+                            <select id="deleteOldDaysSelect">
+                                <option value="7">7 días</option>
+                                <option value="30">30 días (1 mes)</option>
+                                <option value="90">90 días (3 meses)</option>
+                                <option value="180">180 días (6 meses)</option>
+                                <option value="365">365 días (1 año)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-warning" onclick="deleteOldRecords()">🗑️ Eliminar</button>
+                    </div>
+                </div>
+
+                <div class="card" style="background: #f8d7da; border-left-color: #ff6b6b; margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px;">🗑️ Limpiar Toda la Base de Datos</h4>
+                    <p style="margin-bottom: 12px; color: #666;">Esta acción eliminará TODOS los datos. No se puede deshacer.</p>
+                    <div class="button-group">
+                        <button class="btn-danger" onclick="clearAllData()" style="background: #dc3545; width: 100%;">🗑️ Limpiar TODO</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px;">📊 Información</h4>
+                    <p id="dbInfo" style="color: #666;"></p>
+                </div>
+            </div>
+
+            <!-- TAB SYNC -->
+            <div id="sync" class="settings-tab-content">
+                <h3 style="margin-bottom: 15px;">🔄 Sincronización</h3>
+
+                <div class="card">
+                    <h4 style="margin-bottom: 10px;">⚙️ Configuración del Servidor</h4>
+                    <div class="form-group">
+                        <label>URL del Servidor</label>
+                        <input type="text" id="serverUrl" placeholder="https://tu-servidor.com/api">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key (Opcional)</label>
+                        <input type="password" id="apiKey" placeholder="Tu clave API">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="saveServerConfig()">💾 Guardar</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px;">📊 Estado</h4>
+                    <p id="syncStatus2" style="color: #666; margin-bottom: 10px;"></p>
+                    <p id="lastSync" style="color: #666; margin-bottom: 10px;"></p>
+                    <p id="queueSize" style="color: #666;"></p>
+                    <div class="button-group" style="margin-top: 15px;">
+                        <button class="btn-primary" onclick="forceSyncNow()">🔄 Sincronizar Ahora</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group" style="margin-top: 20px;">
+                <button class="btn-secondary" onclick="closeSettings()" style="width: 100%;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="importFile" style="display:none" onchange="handleImport(event)">
+
+    <script src="app.js"></script>
+</body>
+</html>

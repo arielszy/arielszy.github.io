@@ -1,0 +1,36 @@
+{
+  "name": "Gestión de Pedidos",
+  "short_name": "Pedidos",
+  "description": "Sistema de gestión de pedidos con sincronización en tiempo real",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='100' font-weight='bold' fill='white' font-family='Arial'>📦</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23f0f0f0' width='540' height='720'/></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo Pedido",
+      "short_name": "Pedido",
+      "description": "Crear un nuevo pedido",
+      "url": "/?tab=pedidos",
+      "icons": []
+    }
+  ],
+  "categories": ["business", "productivity"]
+}
