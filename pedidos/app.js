@@ -23,8 +23,8 @@ let ticketConfig = {
     showDescription: true,
     showAmount: true,
     showFooter: true,
-    businessName: Mi Negocio,
-    footerText: Gracias por su compra
+    businessName: 'Mi Negocio',
+    footerText: 'Gracias por su compra',
 };
 
 let editingClientId = null;
