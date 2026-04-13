@@ -15,22 +15,5 @@
       "type": "image/svg+xml",
       "purpose": "any"
     }
-  ],
-  "screenshots": [
-    {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23f0f0f0' width='540' height='720'/></svg>",
-      "sizes": "540x720",
-      "type": "image/svg+xml"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Nuevo Pedido",
-      "short_name": "Pedido",
-      "description": "Crear un nuevo pedido",
-      "url": "/?tab=pedidos",
-      "icons": []
-    }
-  ],
-  "categories": ["business", "productivity"]
+  ]
 }

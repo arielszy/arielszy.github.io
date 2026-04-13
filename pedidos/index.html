@@ -5,370 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Pedidos - PWA</title>
     <meta name="theme-color" content="#667eea">
-    <meta name="description" content="Sistema de Gestión de Pedidos con sincronización en tiempo real">
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23667eea' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='100' font-weight='bold' fill='white' font-family='Arial'>📦</text></svg>">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 15px;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-        }
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; }
         header h1 { font-size: 1.8em; margin-bottom: 3px; }
         header p { font-size: 0.85em; opacity: 0.9; }
-        .status-bar {
-            background: rgba(0, 0, 0, 0.08);
-            padding: 8px 15px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85em;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-        }
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
+        .status-bar { background: rgba(0, 0, 0, 0.08); padding: 8px 15px; display: flex; justify-content: space-between; font-size: 0.85em; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .sync-status { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 5px; font-weight: 600; }
         .sync-status.online { background: #d4edda; color: #155724; }
         .sync-status.offline { background: #f8d7da; color: #721c24; }
-        .sync-status.syncing { background: #fff3cd; color: #856404; }
-        .sync-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-        .sync-indicator.online { background: #28a745; }
+        .sync-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #28a745; }
         .sync-indicator.offline { background: #dc3545; }
-        .sync-indicator.syncing { background: #ffc107; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .tabs-container {
-            display: flex;
-            border-bottom: 2px solid #e0e0e0;
-            background: #f8f9fa;
-            flex-wrap: wrap;
-        }
-        .tab-button {
-            flex: 1;
-            min-width: 100px;
-            padding: 10px 12px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 500;
-            color: #666;
-            border-bottom: 3px solid transparent;
-        }
+        .tabs-container { display: flex; border-bottom: 2px solid #e0e0e0; background: #f8f9fa; flex-wrap: wrap; }
+        .tab-button { flex: 1; min-width: 100px; padding: 10px 12px; border: none; background: transparent; cursor: pointer; font-size: 0.9em; font-weight: 500; color: #666; border-bottom: 3px solid transparent; }
         .tab-button:hover { background: #f0f0f0; color: #667eea; }
         .tab-button.active { color: #667eea; border-bottom-color: #667eea; }
         .tab-content { display: none; padding: 20px; }
         .tab-content.active { display: block; }
-        .section-title {
-            font-size: 1.2em;
-            color: #333;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #667eea;
-        }
-        .search-input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 0.9em;
-            margin-bottom: 12px;
-        }
+        .section-title { font-size: 1.2em; color: #333; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #667eea; }
+        .search-input { width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 0.9em; margin-bottom: 12px; }
         .search-input:focus { outline: none; border-color: #667eea; }
-        .filter-section {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .filter-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 12px;
-        }
+        .filter-section { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        .filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
         .filter-group { display: flex; flex-direction: column; }
         .filter-group label { font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.9em; }
-        .filter-group select, .filter-group input {
-            padding: 8px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 0.9em;
-        }
+        .filter-group select, .filter-group input { padding: 8px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 0.9em; width: 100%; }
         .filter-group select:focus, .filter-group input:focus { outline: none; border-color: #667eea; }
+        .filter-buttons { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 12px; border: 2px solid #e0e0e0; background: white; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-weight: 600; }
+        .filter-btn:hover { border-color: #667eea; color: #667eea; }
+        .filter-btn.active { background: #667eea; color: white; border-color: #667eea; }
         .form-group { margin-bottom: 12px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         label { display: block; margin-bottom: 4px; color: #333; font-weight: 500; font-size: 0.9em; }
         .required::after { content: " *"; color: #ff6b6b; }
-        input, select, textarea {
-            width: 100%;
-            padding: 8px;
-            border: 2px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 0.9em;
-            font-family: inherit;
-        }
+        input, select, textarea { width: 100%; padding: 8px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 0.9em; font-family: inherit; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1); }
         textarea { resize: vertical; min-height: 60px; }
-        .button-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-        button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 5px;
-            font-size: 0.9em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            flex: 1;
-            min-width: 120px;
-        }
+        .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; }
+        .checkbox-item input[type="checkbox"] { width: auto; cursor: pointer; }
+        .button-group { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        button { padding: 8px 16px; border: none; border-radius: 5px; font-size: 0.9em; font-weight: 600; cursor: pointer; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; flex: 1; min-width: 120px; }
         .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3); }
-        .btn-secondary {
-            background: #e0e0e0;
-            color: #333;
-            flex: 1;
-            min-width: 80px;
-        }
+        .btn-secondary { background: #e0e0e0; color: #333; flex: 1; min-width: 80px; }
         .btn-secondary:hover { background: #d0d0d0; }
         .btn-danger { background: #ff6b6b; color: white; padding: 5px 10px; font-size: 0.8em; }
         .btn-danger:hover { background: #ff5252; }
         .btn-settings { background: #6c757d; color: white; padding: 8px 12px; font-size: 0.85em; }
         .btn-settings:hover { background: #5a6268; }
         .btn-info { background: #17a2b8; color: white; padding: 5px 10px; font-size: 0.8em; }
-        .btn-info:hover { background: #138496; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 12px;
-            font-size: 0.85em;
-        }
-        th {
-            background: #f0f0f0;
-            padding: 8px;
-            text-align: left;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #e0e0e0;
-            font-size: 0.8em;
-        }
+        .btn-warning { background: #ffc107; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.85em; }
+        th { background: #f0f0f0; padding: 8px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #e0e0e0; }
         td { padding: 8px; border-bottom: 1px solid #e0e0e0; }
         tr:hover { background: #f9f9f9; }
-        .card {
-            background: #f8f9fa;
-            border-left: 3px solid #667eea;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }
+        .card { background: #f8f9fa; border-left: 3px solid #667eea; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
         .card.editing { background: #fffacd; border-left-color: #ffc107; }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .stat-card { background: #f0f0f0; padding: 12px; border-radius: 6px; text-align: center; }
         .stat-title { font-size: 0.85em; color: #666; margin-bottom: 5px; }
         .stat-value { font-size: 1.5em; color: #667eea; font-weight: bold; }
-        .alert {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            display: none;
-            font-size: 0.9em;
-        }
+        .alert { padding: 10px; border-radius: 5px; margin-bottom: 15px; display: none; font-size: 0.9em; }
         .alert.show { display: block; }
         .alert.success { background: #d4edda; color: #155724; border-left: 3px solid #28a745; }
         .alert.error { background: #f8d7da; color: #721c24; border-left: 3px solid #f5c6cb; }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-            overflow-y: auto;
-        }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); align-items: center; justify-content: center; overflow-y: auto; }
         .modal.active { display: flex; }
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 900px;
-            width: 90%;
-            position: relative;
-            max-height: 85vh;
-            overflow-y: auto;
-            margin: auto;
-        }
-        .close-modal {
-            background: #e0e0e0;
-            color: #333;
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            font-size: 1em;
-            cursor: pointer;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            border: none;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            font-weight: 600;
-        }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 900px; width: 90%; position: relative; max-height: 85vh; overflow-y: auto; margin: auto; }
+        .close-modal { background: #e0e0e0; color: #333; width: 25px; height: 25px; border-radius: 50%; font-size: 1em; cursor: pointer; position: absolute; top: 10px; right: 10px; border: none; }
+        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 15px; font-size: 0.8em; font-weight: 600; }
         .status-pendiente { background: #fff3cd; color: #856404; }
         .status-preparado { background: #d1ecf1; color: #0c5460; }
         .status-facturado { background: #cfe2ff; color: #084298; }
         .status-entregado { background: #d4edda; color: #155724; }
-        .empty-state { text-align: center; padding: 30px 15px; color: #999; font-size: 0.9em; }
+        .empty-state { text-align: center; padding: 30px 15px; color: #999; }
         .select-search { position: relative; }
         .select-search-input { width: 100%; padding: 8px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 0.9em; }
         .select-search-input:focus { outline: none; border-color: #667eea; }
-        .select-options {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 2px solid #667eea;
-            border-top: none;
-            border-radius: 0 0 5px 5px;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
-            z-index: 100;
-        }
+        .select-options { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #667eea; border-top: none; border-radius: 0 0 5px 5px; max-height: 200px; overflow-y: auto; display: none; z-index: 100; }
         .select-options.show { display: block; }
         .option-item { padding: 8px 12px; border-bottom: 1px solid #e0e0e0; cursor: pointer; }
         .option-item:hover { background: #f0f0f0; }
         .option-name { font-weight: 600; color: #333; }
         .option-detail { font-size: 0.85em; color: #666; }
-        .client-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        .client-header h2 { font-size: 1.3em; margin-bottom: 8px; }
-        .client-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 12px;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-        }
-        .client-info-item { background: rgba(255,255,255,0.15); padding: 8px; border-radius: 4px; }
-        .client-info-label { font-weight: 600; margin-bottom: 2px; font-size: 0.8em; }
-        .client-balance { margin-top: 8px; font-size: 1em; }
-        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
-        .history-table thead { background: #f0f0f0; }
-        .history-table th { padding: 6px; text-align: left; font-weight: 600; border-bottom: 2px solid #e0e0e0; font-size: 0.8em; }
-        .history-table td { padding: 6px; border-bottom: 1px solid #e0e0e0; }
-        .history-table tr:hover { background: #f9f9f9; }
-        .history-row.order { background: #fffbf0; }
-        .history-row.payment { background: #f0fbf7; }
-        .history-type { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 0.75em; font-weight: 600; }
-        .history-type.payment { background: #d4edda; color: #155724; }
-        .history-type.order { background: #fff3cd; color: #856404; }
-        .history-amount { font-weight: bold; text-align: right; }
-        .history-amount.order { color: #ffc107; }
-        .history-amount.payment { color: #28a745; }
-        .pagination-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-        .pagination-info { font-size: 0.85em; color: #666; margin-right: 10px; }
-        .table-wrapper { overflow-x: auto; }
-        .settings-tabs {
-            display: flex;
-            border-bottom: 2px solid #e0e0e0;
-            margin-bottom: 20px;
-            gap: 0;
-        }
-        .settings-tab-btn {
-            padding: 12px 20px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
+        .ticket-preview { background: #f5f5f5; border: 1px solid #ddd; padding: 15px; border-radius: 5px; width: 80mm; margin: 15px auto; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.4; text-align: center; }
+        .ticket-preview h3 { margin: 5px 0; font-size: 13px; }
+        .ticket-preview p { margin: 3px 0; }
+        .ticket-preview hr { border: none; border-top: 1px solid #333; margin: 8px 0; }
+        .settings-tabs { display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px; }
+        .settings-tab-btn { padding: 12px 20px; border: none; background: transparent; cursor: pointer; font-size: 0.9em; font-weight: 600; color: #666; border-bottom: 3px solid transparent; }
         .settings-tab-btn:hover { color: #667eea; }
         .settings-tab-btn.active { color: #667eea; border-bottom-color: #667eea; }
         .settings-tab-content { display: none; }
         .settings-tab-content.active { display: block; }
-        .install-banner {
-            background: #cfe2ff;
-            border: 2px solid #084298;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            display: none;
-        }
-        .install-banner.show { display: block; }
-        @media (max-width: 600px) {
-            .form-row { grid-template-columns: 1fr; }
-            header h1 { font-size: 1.4em; }
-            .tab-button { min-width: 75px; padding: 8px 10px; font-size: 0.8em; }
-            .stats-grid { grid-template-columns: 1fr 1fr; }
-            table { font-size: 0.75em; }
-            td, th { padding: 5px; }
-            .client-info { grid-template-columns: 1fr 1fr; }
-            .filter-row { grid-template-columns: 1fr; }
-        }
+        .pagination-container { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
+        .btn-pagination { background: #f0f0f0; color: #333; padding: 5px 10px; font-size: 0.85em; border: 1px solid #ddd; }
+        .btn-pagination:hover { background: #e0e0e0; }
+        .btn-pagination.active { background: #667eea; color: white; }
+        .table-wrapper { overflow-x: auto; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } header h1 { font-size: 1.4em; } .tab-button { min-width: 75px; padding: 8px 10px; font-size: 0.8em; } .stats-grid { grid-template-columns: 1fr 1fr; } table { font-size: 0.75em; } td, th { padding: 5px; } }
     </style>
 </head>
 <body>
@@ -380,20 +120,13 @@
 
         <div class="status-bar">
             <span id="syncStatus" class="sync-status online">
-                <span class="sync-indicator online"></span>
+                <span class="sync-indicator"></span>
                 En línea
             </span>
             <span id="clientCount">Clientes: 0</span>
             <button class="btn-secondary" style="padding: 5px 12px; font-size: 0.8em;" onclick="exportData()">💾 Exportar</button>
             <button class="btn-secondary" style="padding: 5px 12px; font-size: 0.8em;" onclick="importData()">📥 Importar</button>
             <button class="btn-settings" onclick="openSettings()">⚙️ Configuración</button>
-        </div>
-
-        <div id="installBanner" class="install-banner">
-            <strong>📲 Instalar Aplicación</strong>
-            <p>Instala esta app en tu dispositivo para acceder sin conexión</p>
-            <button class="btn-primary" style="margin-top: 10px;" onclick="installApp()">Instalar</button>
-            <button class="btn-secondary" style="margin-top: 10px;" onclick="closeInstallBanner()">No ahora</button>
         </div>
 
         <div class="tabs-container">
@@ -458,9 +191,7 @@
                     <div class="select-search">
                         <input type="text" class="select-search-input" id="orderClientSearch" placeholder="🔍 Buscar cliente...">
                         <div class="select-options" id="orderClientOptions"></div>
-                        <select id="orderClient" style="display:none;">
-                            <option value="">-- Seleccionar --</option>
-                        </select>
+                        <select id="orderClient" style="display:none;"><option value="">-- Seleccionar --</option></select>
                     </div>
                 </div>
                 <div class="form-row">
@@ -469,9 +200,8 @@
                         <input type="date" id="orderDate">
                     </div>
                     <div class="form-group">
-                        <label id="amountLabel">Monto</label>
+                        <label>Monto</label>
                         <input type="number" id="orderAmount" min="0" step="0.01">
-                        <small id="amountHint" style="color: #999; font-size: 0.8em;"></small>
                     </div>
                 </div>
                 <div class="form-group">
@@ -489,7 +219,7 @@
                     </div>
                     <div class="form-group">
                         <label>Estado</label>
-                        <select id="orderStatus" onchange="updateAmountRequirement()">
+                        <select id="orderStatus">
                             <option>pendiente</option>
                             <option>preparado</option>
                             <option>facturado</option>
@@ -555,9 +285,7 @@
                     <div class="select-search">
                         <input type="text" class="select-search-input" id="paymentClientSearch" placeholder="🔍 Buscar cliente...">
                         <div class="select-options" id="paymentClientOptions"></div>
-                        <select id="paymentClient" style="display:none;">
-                            <option value="">-- Seleccionar --</option>
-                        </select>
+                        <select id="paymentClient" style="display:none;"><option value="">-- Seleccionar --</option></select>
                     </div>
                 </div>
                 <div class="form-row">
@@ -625,30 +353,12 @@
         <div id="reportes" class="tab-content">
             <h2 class="section-title">Reportes</h2>
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-title">Clientes</div>
-                    <div class="stat-value" id="statClients">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-title">Pedidos</div>
-                    <div class="stat-value" id="statOrders">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-title">Ventas</div>
-                    <div class="stat-value" id="statSales">$0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-title">Pagos</div>
-                    <div class="stat-value" id="statPayments">$0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-title">Pendiente</div>
-                    <div class="stat-value" id="statBalance">$0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-title">Con Deuda</div>
-                    <div class="stat-value" id="statDebtors">0</div>
-                </div>
+                <div class="stat-card"><div class="stat-title">Clientes</div><div class="stat-value" id="statClients">0</div></div>
+                <div class="stat-card"><div class="stat-title">Pedidos</div><div class="stat-value" id="statOrders">0</div></div>
+                <div class="stat-card"><div class="stat-title">Ventas</div><div class="stat-value" id="statSales">$0</div></div>
+                <div class="stat-card"><div class="stat-title">Pagos</div><div class="stat-value" id="statPayments">$0</div></div>
+                <div class="stat-card"><div class="stat-title">Pendiente</div><div class="stat-value" id="statBalance">$0</div></div>
+                <div class="stat-card"><div class="stat-title">Con Deuda</div><div class="stat-value" id="statDebtors">0</div></div>
             </div>
 
             <h3 class="section-title">Resumen por Cliente</h3>
@@ -684,12 +394,71 @@
             <h2 style="margin-bottom: 15px;">⚙️ Configuración</h2>
 
             <div class="settings-tabs">
-                <button class="settings-tab-btn active" onclick="switchSettingsTab('database')">💾 Base de Datos</button>
-                <button class="settings-tab-btn" onclick="switchSettingsTab('sync')">🔄 Sincronización</button>
+                <button class="settings-tab-btn active" onclick="switchSettingsTab('tickets')">🎫 Tickets</button>
+                <button class="settings-tab-btn" onclick="switchSettingsTab('database')">💾 Base de Datos</button>
+            </div>
+
+            <!-- TAB TICKETS -->
+            <div id="tickets" class="settings-tab-content active">
+                <h3 style="margin-bottom: 15px;">Configuración de Tickets</h3>
+                
+                <label style="font-weight: bold; margin-bottom: 12px; display: block;">Selecciona los elementos a mostrar en el ticket:</label>
+                
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showLogo" checked>
+                        <label for="showLogo" style="margin-bottom: 0;">Mostrar Logo/Título</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showClientName" checked>
+                        <label for="showClientName" style="margin-bottom: 0;">Nombre del Cliente</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showClientPhone" checked>
+                        <label for="showClientPhone" style="margin-bottom: 0;">Teléfono del Cliente</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showClientAddress" checked>
+                        <label for="showClientAddress" style="margin-bottom: 0;">Domicilio del Cliente</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showDate" checked>
+                        <label for="showDate" style="margin-bottom: 0;">Fecha</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showDescription" checked>
+                        <label for="showDescription" style="margin-bottom: 0;">Descripción</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showAmount" checked>
+                        <label for="showAmount" style="margin-bottom: 0;">Monto Total</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="showFooter" checked>
+                        <label for="showFooter" style="margin-bottom: 0;">Pie de Página</label>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; margin-bottom: 20px;">
+                    <label for="businessName" style="display: block; margin-bottom: 8px;"><strong>Nombre del Negocio:</strong></label>
+                    <input type="text" id="businessName" placeholder="Mi Negocio" style="margin-bottom: 12px;">
+                    
+                    <label for="footerText" style="display: block; margin-bottom: 8px;"><strong>Texto del Pie:</strong></label>
+                    <textarea id="footerText" placeholder="Gracias por su compra" style="margin-bottom: 12px;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 12px;">Vista Previa del Ticket:</h3>
+                    <div id="previewTicket" class="ticket-preview"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="saveSettings()">💾 Guardar Configuración</button>
+                </div>
             </div>
 
             <!-- TAB DATABASE -->
-            <div id="database" class="settings-tab-content active">
+            <div id="database" class="settings-tab-content">
                 <h3 style="margin-bottom: 15px;">Gestión de Base de Datos</h3>
 
                 <div class="card" style="background: #fff3cd; border-left-color: #ffc107;">
@@ -725,36 +494,6 @@
                 </div>
             </div>
 
-            <!-- TAB SYNC -->
-            <div id="sync" class="settings-tab-content">
-                <h3 style="margin-bottom: 15px;">🔄 Sincronización</h3>
-
-                <div class="card">
-                    <h4 style="margin-bottom: 10px;">⚙️ Configuración del Servidor</h4>
-                    <div class="form-group">
-                        <label>URL del Servidor</label>
-                        <input type="text" id="serverUrl" placeholder="https://tu-servidor.com/api">
-                    </div>
-                    <div class="form-group">
-                        <label>API Key (Opcional)</label>
-                        <input type="password" id="apiKey" placeholder="Tu clave API">
-                    </div>
-                    <div class="button-group">
-                        <button class="btn-primary" onclick="saveServerConfig()">💾 Guardar</button>
-                    </div>
-                </div>
-
-                <div class="card" style="margin-top: 15px;">
-                    <h4 style="margin-bottom: 10px;">📊 Estado</h4>
-                    <p id="syncStatus2" style="color: #666; margin-bottom: 10px;"></p>
-                    <p id="lastSync" style="color: #666; margin-bottom: 10px;"></p>
-                    <p id="queueSize" style="color: #666;"></p>
-                    <div class="button-group" style="margin-top: 15px;">
-                        <button class="btn-primary" onclick="forceSyncNow()">🔄 Sincronizar Ahora</button>
-                    </div>
-                </div>
-            </div>
-
             <div class="button-group" style="margin-top: 20px;">
                 <button class="btn-secondary" onclick="closeSettings()" style="width: 100%;">Cerrar</button>
             </div>
@@ -762,7 +501,6 @@
     </div>
 
     <input type="file" id="importFile" style="display:none" onchange="handleImport(event)">
-
     <script src="app.js"></script>
 </body>
 </html>

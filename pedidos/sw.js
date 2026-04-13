@@ -1,12 +1,12 @@
-const CACHE_NAME = 'gestion-pedidos-v1';
+const CACHE_NAME = gestion-pedidos-v1;
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/app.js',
-  '/manifest.json'
+  /,
+  /index.html,
+  /app.js,
+  /manifest.json
 ];
 
-self.addEventListener('install', event => {
+self.addEventListener(install, event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
@@ -14,7 +14,7 @@ self.addEventListener('install', event => {
   );
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener(activate, event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -28,8 +28,8 @@ self.addEventListener('activate', event => {
   );
 });
 
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') {
+self.addEventListener(fetch, event => {
+  if (event.request.method !== GET) {
     return;
   }
 
@@ -40,7 +40,7 @@ self.addEventListener('fetch', event => {
           return response;
         }
         return fetch(event.request).then(response => {
-          if (!response || response.status !== 200 || response.type === 'error') {
+          if (!response || response.status !== 200 || response.type === error) {
             return response;
           }
           const responseToCache = response.clone();
@@ -52,7 +52,7 @@ self.addEventListener('fetch', event => {
         });
       })
       .catch(() => {
-        return caches.match('/index.html');
+        return caches.match(/index.html);
       })
   );
 });
