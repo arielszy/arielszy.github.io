@@ -32,7 +32,7 @@ let editingOrderId = null;
 let reportFilter = todos;
 const ITEMS_PER_PAGE = 10;
 let currentPage = { clients: 1, orders: 1, accounts: 1, payments: 1, summary: 1 };
-let orderFilters = { clientId: , status: , dateFrom: , dateTo:  };
+let orderFilters = { clientId:  status: , dateFrom: , dateTo:  };
 let paymentFilters = { clientId: , dateFrom: , dateTo:  };
 
 function initDB() {
