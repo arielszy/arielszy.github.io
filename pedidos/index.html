@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Pedidos</title>
 <link rel="manifest" href="manifest.json">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -1283,49 +1283,110 @@
     <input type="file" id="importFile" style="display:none" onchange="handleImport(event)">
 
     <script>
-// CONFIGURACIÓN SUPABASE
+// --- CONFIGURACIÓN ---
 const SB_URL = 'https://lbzszscqfzxqcuneqggx.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxienN6c2NxZnp4cWN1bmVxZ2d4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMDQ1NjIsImV4cCI6MjA5MTc4MDU2Mn0.LfveHjgjOkyaY2k67-kyoI33-UV2RBJhj9PJqnVC1y0';
-const supabase = libSupabase.createClient(SB_URL, SB_KEY);
 
-// Registro de Service Worker para modo Offline
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
+let db; // Para IndexedDB
+let clientSB; // Variable para Supabase (nombre distinto para evitar errores)
+
+// --- INICIALIZACIÓN ---
+async function initApp() {
+    try {
+        // 1. Inicializar Supabase de forma segura
+        if (typeof supabase !== 'undefined') {
+            clientSB = supabase.createClient(SB_URL, SB_KEY);
+            console.log("✅ Supabase Conectado");
+        }
+
+        // 2. Inicializar base local IndexedDB
+        await initDB(); 
+        
+        // 3. Sincronizar si hay internet
+        if (navigator.onLine) {
+            await syncData();
+        }
+
+        // 4. Renderizar la interfaz
+        renderAll();
+
+        // 5. Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    } catch (error) {
+        console.error("Error al iniciar:", error);
+    }
 }
 
-// FUNCIONES DE SINCRONIZACIÓN
-async function syncData() {
-    if (!navigator.onLine) return;
-    
-    console.log("Sincronizando...");
+// --- FUNCIÓN SAVE CLIENT (CORREGIDA) ---
+async function saveClient(event) {
+    // Si se llama desde un formulario, evitamos que la página se recargue
+    if (event) event.preventDefault();
+
+    const name = document.getElementById('clientName').value;
+    if (!name) return alert("El nombre es obligatorio");
+
+    const client = {
+        id: editingClientId || Date.now().toString(),
+        name: name,
+        phone: document.getElementById('clientPhone').value,
+        email: document.getElementById('clientEmail').value,
+        doc: document.getElementById('clientDoc').value,
+        address: document.getElementById('clientAddress').value,
+        last_updated: Date.now()
+    };
+
     try {
-        // 1. Enviar datos locales a la nube (Upsert)
+        // 1. Guardar en local (Siempre funciona)
+        await put(STORES.CLIENTS, client);
+        
+        // 2. Intentar guardar en la nube si hay internet
+        if (navigator.onLine && clientSB) {
+            await clientSB.from('clients').upsert(client);
+        }
+
+        clearClientForm();
+        renderAll();
+        alert("✅ Cliente guardado");
+    } catch (err) {
+        console.error("Error al guardar:", err);
+    }
+}
+
+// --- FUNCIÓN DE SINCRONIZACIÓN ---
+async function syncData() {
+    if (!navigator.onLine || !clientSB) return;
+    
+    try {
         const clients = await getAll(STORES.CLIENTS);
         const orders = await getAll(STORES.ORDERS);
         const payments = await getAll(STORES.PAYMENTS);
 
-        if (clients.length) await supabase.from('clients').upsert(clients);
-        if (orders.length) await supabase.from('orders').upsert(orders);
-        if (payments.length) await supabase.from('payments').upsert(payments);
+        if (clients.length) await clientSB.from('clients').upsert(clients);
+        if (orders.length) await clientSB.from('orders').upsert(orders);
+        if (payments.length) await clientSB.from('payments').upsert(payments);
 
-        // 2. Descargar cambios nuevos de la nube
-        const { data: cloudClients } = await supabase.from('clients').select('*');
+        // Bajar datos nuevos
+        const { data: cloudClients } = await clientSB.from('clients').select('*');
         if (cloudClients) {
             for (let c of cloudClients) await put(STORES.CLIENTS, c);
         }
         
-        // Repetir para orders y payments...
-        const { data: cloudOrders } = await supabase.from('orders').select('*');
-        if (cloudOrders) {
-            for (let o of cloudOrders) await put(STORES.ORDERS, o);
-        }
-
-        renderAll();
-        console.log("✅ Sincronizado");
+        console.log("🔄 Sincronización exitosa");
     } catch (err) {
-        console.error("Error sincronizando:", err);
+        console.warn("Error de sincronización:", err);
     }
 }
+
+// No olvides llamar a initApp al final
+initApp();
+
+
+
+
+
+
 
 // Escuchar cambios de conexión
 window.addEventListener('online', syncData);
@@ -1338,29 +1399,6 @@ async function initApp() {
 }
 
 // Modificar tus funciones de GUARDADO (ejemplo para clientes)
-async function saveClient(e) {
-    e.preventDefault();
-    const client = {
-        id: document.getElementById('clientId').value || Date.now().toString(),
-        name: document.getElementById('clientName').value,
-        phone: document.getElementById('clientPhone').value,
-        email: document.getElementById('clientEmail').value,
-        doc: document.getElementById('clientDoc').value,
-        address: document.getElementById('clientAddress').value,
-        last_updated: Date.now()
-    };
-
-    // 1. Guardar en local (Siempre funciona, aunque no haya internet)
-    await put(STORES.CLIENTS, client);
-    
-    // 2. Intentar guardar en la nube inmediatamente
-    if (navigator.onLine) {
-        await supabase.from('clients').upsert(client);
-    }
-
-    closeSettings();
-    renderAll();
-}
         // IndexedDB Setup
         let db;
         const DB_NAME = 'GestionPedidosDB';
@@ -2805,5 +2843,6 @@ async function saveClient(e) {
 
         initApp();
     </script>
+
 </body>
 </html>
